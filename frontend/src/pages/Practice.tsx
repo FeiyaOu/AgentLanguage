@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Exercise } from '../types';
 import { scoreAnswers } from '../api';
@@ -6,14 +6,36 @@ import { scoreAnswers } from '../api';
 export default function Practice() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { exercises, topic, difficulty } = location.state as { 
-    exercises: Exercise[]; 
-    topic: string;
-    difficulty: string;
-  };
+  const state = location.state as
+    | {
+        exercises: Exercise[];
+        topic: string;
+        difficulty: string;
+      }
+    | undefined;
 
-  const [answers, setAnswers] = useState<string[]>(new Array(exercises.length).fill(''));
+  const exercises = state?.exercises ?? [];
+  const topic = state?.topic ?? '';
+  const difficulty = state?.difficulty ?? 'beginner';
+
+  const [answers, setAnswers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!state || !Array.isArray(state.exercises) || state.exercises.length === 0) {
+      navigate('/', { replace: true });
+    }
+  }, [state, navigate]);
+
+  useEffect(() => {
+    if (exercises.length > 0 && answers.length !== exercises.length) {
+      setAnswers(new Array(exercises.length).fill(''));
+    }
+  }, [exercises.length, answers.length]);
+
+  if (!state || !Array.isArray(state.exercises) || state.exercises.length === 0) {
+    return null;
+  }
 
   const handleAnswerChange = (index: number, value: string) => {
     const newAnswers = [...answers];
