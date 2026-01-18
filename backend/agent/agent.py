@@ -76,42 +76,6 @@ class LanguageLearningAgent:
             return result
         except Exception as e:
             return f"Error executing tool: {str(e)}"
-
-    def _extract_json(self, text: str) -> Any:
-        """Best-effort extraction of JSON from LLM/tool output."""
-
-        if text is None:
-            raise ValueError("No text to parse")
-
-        cleaned = text.strip()
-
-        # Strip common fenced-code wrappers
-        if cleaned.startswith("```"):
-            cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-            cleaned = re.sub(r"\s*```$", "", cleaned)
-            cleaned = cleaned.strip()
-
-        # First try direct parse
-        try:
-            return json.loads(cleaned)
-        except Exception:
-            pass
-
-        # Try to extract a JSON array
-        start = cleaned.find("[")
-        end = cleaned.rfind("]")
-        if start != -1 and end != -1 and end > start:
-            candidate = cleaned[start : end + 1]
-            return json.loads(candidate)
-
-        # Try to extract a JSON object
-        start = cleaned.find("{")
-        end = cleaned.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            candidate = cleaned[start : end + 1]
-            return json.loads(candidate)
-
-        raise ValueError("Could not extract valid JSON")
     
     def _get_llm_response(self) -> str:
         """Get response from LLM."""
@@ -159,11 +123,8 @@ class LanguageLearningAgent:
                 # Store exercises if generated
                 if parsed["tool"] == "generate_practice":
                     try:
-                        extracted = self._extract_json(tool_result)
-                        if isinstance(extracted, list):
-                            self.current_exercises = extracted
-                    except Exception:
-                        # Leave exercises unchanged; the caller can handle empty results.
+                        self.current_exercises = json.loads(tool_result)
+                    except:
                         pass
                 
                 # Add tool result back to conversation
