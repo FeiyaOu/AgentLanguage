@@ -39,23 +39,42 @@ class GeneratePracticeTool(Tool):
         prompt = f"""Generate 5 practice exercises for learning English in this context: {topic}
 Difficulty level: {difficulty}{focus_text}
 
-Create  exercises of:
+Supported exercise types:
+1. "multiple_choice": Standard 4-option questions.
+2. "fill_in_the_blank": User types the missing word/phrase.
+3. "roleplay": User responses to a scenario (open-ended).
 
- Multiple choice questions unless requested otherwise.
+Decide the best exercise type based on the request. If "roleplay" or "open formatted" is suggested in the focus areas, use "roleplay". Default to "multiple_choice".
 
+Return ONLY a JSON array with the chosen structure.
 
-Return ONLY a JSON array with this structure:
+Example (Multiple Choice):
 [
   {{
     "question": "Complete: I'd like to ___ a table for two.",
     "type": "multiple_choice",
     "correct_answer": "reserve",
     "options": ["reserve", "order", "make", "take"]
-  }},
-  ...
+  }}
 ]
 
-This is just an example, generate different exercises.
+Example (Fill in blank):
+[
+  {{
+    "question": "Type the missing word: I am ___ forward to meeting you.",
+    "type": "fill_in_the_blank",
+    "correct_answer": "looking"
+  }}
+]
+
+Example (Roleplay):
+[
+  {{
+    "question": "You are at a cafe. The waiter asks 'What can I get you?'. You want a black coffee. Write your response:",
+    "type": "roleplay",
+    "correct_answer": "I'd like a black coffee, please." 
+  }}
+]
 
 Keep exercises practical and conversational."""
 
@@ -100,17 +119,26 @@ Provide:
 2. Overall score (X/Y)
 3. Identify weak areas and patterns in mistakes
 4. Suggest specific focus areas for next practice
+5. Suggest the best type of exercise for improvement (e.g. roleplay, drill, explanation, conversation)
 
 Return ONLY a JSON object with this structure:
 {{
   "total_score": "3/5",
   "score_percentage": 60,
   "detailed_scores": [
-    {{"question_num": 1, "correct": true, "feedback": "Perfect!"}},
+    {{
+      "question_num": 1,
+      "question": "The original question text",
+      "user_answer": "The user's answer",
+      "correct_answer": "The expected answer",
+      "correct": true,
+      "feedback": "Perfect! precise usage."
+    }},
     ...
   ],
   "weak_areas": ["ordering drinks", "using polite phrases"],
-  "recommendations": "Focus on using 'would like' instead of 'want' for polite requests."
+  "recommendations": "Focus on using 'would like' instead of 'want' for polite requests.",
+  "suggested_exercise_type": "roleplay"
 }}
 This is just an example, generate different feedback.
 """

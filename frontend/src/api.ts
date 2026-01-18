@@ -34,6 +34,17 @@ export const scoreAnswers = async (
   return response.data;
 };
 
+export const askTutor = async (
+  question: string,
+  context?: Record<string, any>
+): Promise<{ answer: string }> => {
+  const response = await api.post('/api/ask-tutor', {
+    question,
+    context,
+  });
+  return response.data;
+};
+
 export const resetSession = async (): Promise<void> => {
   await api.post('/api/reset');
 };

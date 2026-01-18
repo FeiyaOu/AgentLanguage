@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { ScoreResult, Exercise } from '../types';
-import { generatePractice } from '../api';
+import { generatePractice, askTutor } from '../api';
 
 export default function Feedback() {
   const location = useLocation();
@@ -15,16 +15,34 @@ export default function Feedback() {
   };
 
   const [loading, setLoading] = useState(false);
+  const [tutorState, setTutorState] = useState<{
+    isOpen: boolean;
+    question: string;
+    answer: string;
+    loading: boolean;
+    contextQuestionNum: number | null;
+  }>({
+    isOpen: false,
+    question: '',
+    answer: '',
+    loading: false,
+    contextQuestionNum: null,
+  });
 
   const handleContinue = async () => {
     setLoading(true);
     
     try {
+      const focusAreas = [...result.weak_areas];
+      if (result.suggested_exercise_type) {
+        focusAreas.push(`preferred style: ${result.suggested_exercise_type}`);
+      }
+
       // Generate new practice with focus on weak areas
       const practiceResult = await generatePractice(
         topic,
         difficulty,
-        result.weak_areas
+        focusAreas
       );
       
       navigate('/practice', { 
@@ -42,6 +60,44 @@ export default function Feedback() {
     }
   };
 
+  const handleAskTutor = async (userQuestion: string) => {
+    if (!userQuestion.trim()) return;
+
+    setTutorState(prev => ({ ...prev, loading: true, question: userQuestion }));
+    
+    try {
+      // Find context if tied to a specific question
+      let context = undefined;
+      if (tutorState.contextQuestionNum !== null) {
+        const score = result.detailed_scores.find(s => s.question_num === tutorState.contextQuestionNum);
+        if (score) {
+          context = {
+            question: score.question,
+            user_answer: score.user_answer,
+            correct_answer: score.correct_answer,
+            feedback: score.feedback
+          };
+        }
+      }
+
+      const response = await askTutor(userQuestion, context);
+      setTutorState(prev => ({ ...prev, answer: response.answer, loading: false }));
+    } catch (error) {
+      console.error('Error asking tutor:', error);
+      setTutorState(prev => ({ ...prev, answer: 'Sorry, I could not answer that right now.', loading: false }));
+    }
+  };
+
+  const openTutorForQuestion = (questionNum: number) => {
+    setTutorState({
+      isOpen: true,
+      question: '',
+      answer: '',
+      loading: false,
+      contextQuestionNum: questionNum
+    });
+  };
+
   const getScoreColor = (percentage: number) => {
     if (percentage >= 80) return 'text-green-600 bg-green-50';
     if (percentage >= 60) return 'text-yellow-600 bg-yellow-50';
@@ -55,7 +111,7 @@ export default function Feedback() {
   };
 
   return (
-    <div className="min-h-screen px-4 py-12">
+    <div className="min-h-screen px-4 py-12 relative">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -77,6 +133,11 @@ export default function Feedback() {
                 {result.total_score}
               </div>
             </div>
+             {result.suggested_exercise_type && (
+               <div className="mt-4 text-gray-600">
+                  Recommended Practice: <span className="font-semibold text-primary-600 capitalize">{result.suggested_exercise_type}</span>
+               </div>
+            )}
           </div>
         </div>
 
@@ -84,7 +145,7 @@ export default function Feedback() {
         {result.detailed_scores && result.detailed_scores.length > 0 && (
           <div className="card mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Question by Question</h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {result.detailed_scores.map((score, index) => (
                 <div
                   key={index}
@@ -94,24 +155,61 @@ export default function Feedback() {
                       : 'border-red-200 bg-red-50'
                   }`}
                 >
-                  <div className="flex items-start">
-                    <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
-                      score.correct ? 'bg-green-500' : 'bg-red-500'
-                    }`}>
-                      {score.correct ? (
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-gray-800">Question {score.question_num}</p>
-                      <p className="text-sm text-gray-600">{score.feedback}</p>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start flex-1">
+                        <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 mt-1 ${
+                        score.correct ? 'bg-green-500' : 'bg-red-500'
+                        }`}>
+                        {score.correct ? (
+                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                        ) : (
+                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        )}
+                        </span>
+                        <div className="w-full">
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="font-semibold text-gray-800">Question {score.question_num}</span>
+                            </div>
+                            
+                            {/* Question Text */}
+                            <p className="text-gray-900 font-medium mb-2">{score.question || "Question text unavailable"}</p>
+                            
+                            {/* Answers */}
+                            <div className="grid gap-2 mb-3">
+                                <div className={`px-3 py-2 rounded ${score.correct ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'}`}>
+                                    <span className="font-semibold text-xs uppercase tracking-wider block opacity-75">Your Answer</span>
+                                    {score.user_answer || "No answer"}
+                                </div>
+                                {!score.correct && (
+                                    <div className="px-3 py-2 rounded bg-green-100 text-green-900">
+                                        <span className="font-semibold text-xs uppercase tracking-wider block opacity-75">Correct Answer</span>
+                                        {score.correct_answer || "N/A"}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Logic/Feedback */}
+                            <div className="text-sm text-gray-700 bg-white bg-opacity-50 p-3 rounded">
+                                <span className="font-semibold block mb-1">Feedback:</span>
+                                {score.feedback}
+                            </div>
+                        </div>
                     </div>
+                    
+                    {/* Ask Tutor Button */}
+                    <button
+                        onClick={() => openTutorForQuestion(score.question_num)}
+                        className="ml-4 flex-shrink-0 text-primary-600 hover:text-primary-800 hover:bg-primary-50 p-2 rounded-full transition-colors"
+                        title="Ask AI Tutor about this"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -180,6 +278,91 @@ export default function Feedback() {
           </button>
         </div>
       </div>
+
+      {/* Tutor Modal */}
+      {tutorState.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col">
+                <div className="p-4 border-b flex justify-between items-center bg-primary-50 rounded-t-xl">
+                    <h3 className="font-bold text-gray-800 flex items-center">
+                        <span className="text-2xl mr-2">👨‍🏫</span> 
+                        AI Tutor
+                        {tutorState.contextQuestionNum && <span className="ml-2 text-sm font-normal text-gray-500">(Question {tutorState.contextQuestionNum})</span>}
+                    </h3>
+                    <button 
+                        onClick={() => setTutorState(prev => ({ ...prev, isOpen: false }))}
+                        className="text-gray-500 hover:text-gray-700"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <div className="p-4 overflow-y-auto flex-grow space-y-4">
+                    {!tutorState.answer && (
+                        <div className="bg-blue-50 p-4 rounded-lg text-blue-800 text-sm">
+                            Ask me anything about this question! For example: "Why is my answer wrong?" or "Can you explain the grammar rule?"
+                        </div>
+                    )}
+                    
+                    {tutorState.question && (
+                         <div className="flex justify-end">
+                            <div className="bg-primary-100 text-primary-900 p-3 rounded-lg rounded-tr-none max-w-[80%]">
+                                {tutorState.question}
+                            </div>
+                        </div>
+                    )}
+
+                    {tutorState.loading && (
+                        <div className="flex justify-start">
+                            <div className="bg-gray-100 p-3 rounded-lg rounded-tl-none flex items-center">
+                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce mr-1"></span>
+                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce mr-1 delay-75"></span>
+                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+                            </div>
+                        </div>
+                    )}
+
+                    {tutorState.answer && (
+                        <div className="flex justify-start">
+                            <div className="bg-gray-100 text-gray-800 p-3 rounded-lg rounded-tl-none max-w-[90%] prose prose-sm">
+                                {tutorState.answer}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-4 border-t bg-gray-50 rounded-b-xl">
+                    <form 
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            const form = e.target as HTMLFormElement;
+                            const input = form.elements.namedItem('question') as HTMLInputElement;
+                            handleAskTutor(input.value);
+                            input.value = '';
+                        }}
+                        className="flex gap-2"
+                    >
+                        <input 
+                            type="text" 
+                            name="question"
+                            placeholder="Ask a question..."
+                            className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            autoComplete="off"
+                        />
+                        <button 
+                            type="submit"
+                            disabled={tutorState.loading}
+                            className="btn-primary py-2 px-4"
+                        >
+                            Send
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
