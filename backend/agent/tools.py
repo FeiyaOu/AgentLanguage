@@ -41,7 +41,7 @@ Difficulty level: {difficulty}{focus_text}
 
 Create  exercises of:
 
-1. Multiple choice questions
+ Multiple choice questions unless requested otherwise.
 
 
 Return ONLY a JSON array with this structure:
