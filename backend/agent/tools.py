@@ -39,21 +39,23 @@ class GeneratePracticeTool(Tool):
         prompt = f"""Generate 5 practice exercises for learning English in this context: {topic}
 Difficulty level: {difficulty}{focus_text}
 
-Create a mix of:
-1. Fill in the blank exercises
-2. Multiple choice questions
-3. Translation exercises
+Create  exercises of:
+
+1. Multiple choice questions
+
 
 Return ONLY a JSON array with this structure:
 [
   {{
     "question": "Complete: I'd like to ___ a table for two.",
-    "type": "fill_blank",
+    "type": "multiple_choice",
     "correct_answer": "reserve",
     "options": ["reserve", "order", "make", "take"]
   }},
   ...
 ]
+
+This is just an example, generate different exercises.
 
 Keep exercises practical and conversational."""
 
@@ -109,12 +111,14 @@ Return ONLY a JSON object with this structure:
   ],
   "weak_areas": ["ordering drinks", "using polite phrases"],
   "recommendations": "Focus on using 'would like' instead of 'want' for polite requests."
-}}"""
+}}
+This is just an example, generate different feedback.
+"""
 
         response = self.llm.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3
+            temperature=0.5
         )
         
         return response.choices[0].message.content

@@ -1,111 +1,106 @@
-# AI Language Learning Agent
+# AI Language Learning Agent - Full Stack
 
-A simple AI agent (built from scratch, no LangChain) that helps you learn English through adaptive practice exercises.
+A modern AI-powered language learning application with adaptive practice exercises.
 
 ## Features
 
-- **Adaptive Learning**: Agent generates exercises based on your topic of interest
-- **Intelligent Scoring**: Analyzes your answers and identifies weak areas
-- **Targeted Practice**: Re-generates exercises focusing on your weak points
-- **Custom Agent**: Built from scratch to understand agent architecture
+- 🎯 **Adaptive Learning** - AI targets your weak areas
+- 🤖 **Smart Agent** - Custom built (no LangChain), uses tools autonomously  
+- �� **Modern UI** - React + TypeScript + Tailwind CSS with light orange theme
+- 📊 **Real-time Feedback** - Instant scoring and recommendations
+- 🔄 **Progressive Practice** - Each session builds on previous results
 
 ## Architecture
 
-This is a **custom AI agent** implementation that:
-1. **Reasons** about what action to take
-2. **Uses tools** (generate_practice, score_and_analyze)
-3. **Maintains state** (conversation history, current exercises)
-4. **Adapts** based on results (targets weak areas)
-
-### Agent Loop
-
 ```
-User Input → Agent Reasoning → Tool Selection → Tool Execution → Result Analysis → Response/Next Action
+Frontend (React + Vite + TypeScript + Tailwind)
+    ↓ HTTP (axios)
+Backend (Python + FastAPI)
+    ↓ calls
+AI Agent (custom implementation)
+    ↓ uses
+OpenAI API (GPT-4o-mini)
 ```
 
 ## Setup
 
-1. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Prerequisites
+- Python 3.8+
+- Node.js 18+
+- OpenAI API key
 
-2. **Set up API key**:
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your OpenAI API key
-   ```
-
-3. **Run the agent**:
-   ```bash
-   python main.py
-   ```
-
-## Usage Example
-
+### 1. Environment Setup
+```bash
+cd Agent-LanguageAssistant
+cp .env.example .env
+# Edit .env and add: OPENAI_API_KEY=sk-your-key-here
 ```
-You: I want to learn restaurant English
 
-Agent: Great! I'll generate some practice exercises for restaurant English...
+### 2. Backend Setup
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-📝 Practice Exercises:
-1. Complete: I'd like to ___ a table for two.
-   a) reserve  b) order  c) make  d) take
+# Install dependencies
+cd backend
+pip install -r requirements.txt
 
-[... more exercises ...]
-
-Ready to practice? (yes/no): yes
-
-Answer 1: reserve
-Answer 2: ...
-
-📊 Score: 4/5 (80%)
-Weak areas: ordering drinks, asking for the bill
-Let me create targeted exercises for these areas...
+# Start server
+python main.py
 ```
+Backend runs on **http://localhost:8000**
+
+### 3. Frontend Setup
+```bash
+# In a new terminal
+cd frontend
+npm install  # If not done already
+npm run dev
+```
+Frontend runs on **http://localhost:5173**
+
+## Usage
+
+1. Open **http://localhost:5173**
+2. Enter a topic (e.g., "restaurant English")
+3. Select difficulty level
+4. Complete exercises
+5. Get feedback with identified weak areas
+6. Continue with targeted practice
 
 ## Project Structure
 
 ```
 Agent-LanguageAssistant/
-├── agent/
-│   ├── agent.py       # Core agent logic (reasoning, tool calling)
-│   ├── tools.py       # Custom tools (generate_practice, score_and_analyze)
-│   └── prompts.py     # System prompts
-├── main.py            # CLI interface
-├── requirements.txt   # Dependencies
-└── .env.example       # API key template
+├── backend/
+│   ├── agent/           # AI agent implementation
+│   │   ├── agent.py     # Core reasoning loop
+│   │   ├── tools.py     # generate_practice, score_and_analyze
+│   │   └── prompts.py   # System prompts
+│   ├── main.py          # FastAPI server
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── pages/       # Home, Practice, Feedback
+│   │   ├── api.ts       # Backend API client
+│   │   ├── types.ts     # TypeScript types
+│   │   └── index.css    # Tailwind styles
+│   ├── tailwind.config.js
+│   └── package.json
+└── .env                 # API keys (gitignored)
 ```
 
-## How It Works
+## API Endpoints
 
-### 1. Agent Core (`agent/agent.py`)
-- Maintains conversation history
-- Parses agent's reasoning (THOUGHT/TOOL/RESPONSE)
-- Executes tools based on decisions
-- Manages iteration loop
+**POST /api/generate-practice** - Generate exercises
+**POST /api/score-answers** - Score and analyze
+**POST /api/reset** - Reset session
 
-### 2. Tools (`agent/tools.py`)
-- **GeneratePracticeTool**: Creates exercises using LLM
-- **ScoreAndAnalyzeTool**: Grades answers and finds weak areas
+## Tech Stack
 
-### 3. Agent Workflow
-1. User states learning goal
-2. Agent decides to use `generate_practice` tool
-3. Tool returns exercises
-4. User completes exercises
-5. Agent uses `score_and_analyze` tool
-6. Based on weak areas, generates targeted practice
-7. Loop continues
-
-## Next Steps
-
-- [ ] Add web interface (React frontend)
-- [ ] Add more tools (vocabulary lookup, pronunciation)
-- [ ] Add database for progress tracking
-- [ ] Support multiple languages
-- [ ] Add spaced repetition system
+**Frontend:** React, TypeScript, Vite, Tailwind, React Router, Axios  
+**Backend:** Python, FastAPI, OpenAI SDK, Custom Agent
 
 ## License
-
 MIT
