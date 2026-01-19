@@ -85,6 +85,47 @@ class AskTutorResponse(BaseModel):
     answer: str
 
 
+class StartRoleplayRequest(BaseModel):
+    topic: str
+    difficulty: str = "beginner"
+    persona_type: str = "friendly"
+
+
+class StartRoleplayResponse(BaseModel):
+    roleplay_id: str
+    persona_name: str
+    persona_type: str
+    opening_line: str
+    scene_context: str
+    user_goal: str
+
+
+class RoleplayMessageRequest(BaseModel):
+    roleplay_id: str
+    user_message: str
+    turn_count: int
+
+
+class RoleplayMessageResponse(BaseModel):
+    type: str  # "dialogue" or "coach_feedback"
+    persona_response: Optional[str] = None
+    # Coach feedback fields
+    politeness_score: Optional[int] = None
+    grammar_notes: Optional[List[str]] = None
+    vocab_suggestions: Optional[List[str]] = None
+    encouragement: Optional[str] = None
+    persona_resume: Optional[str] = None
+
+
+class EndRoleplayRequest(BaseModel):
+    roleplay_id: str
+
+
+class EndRoleplayResponse(BaseModel):
+    final_message: str
+    total_turns: int
+
+
 @app.get("/")
 def root():
     """Health check endpoint."""
@@ -269,6 +310,153 @@ def reset_session():
     try:
         agent.reset()
         return {"status": "ok", "message": "Session reset"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Roleplay session storage (in-memory for simplicity)
+roleplay_sessions: Dict[str, Dict[str, Any]] = {}
+
+
+@app.post("/api/start-roleplay", response_model=StartRoleplayResponse)
+def start_roleplay(request: StartRoleplayRequest):
+    """Start a new interactive roleplay session."""
+    try:
+        import uuid
+        from agent.tools import RoleplayTool
+        
+        # Generate unique roleplay ID
+        roleplay_id = str(uuid.uuid4())
+        
+        # Use tool to generate opening
+        tool = RoleplayTool(agent.client)
+        raw = tool.execute(
+            scenario=request.topic,
+            persona_type=request.persona_type,
+            difficulty=request.difficulty
+        )
+        
+        # Extract JSON
+        result = agent._extract_json(raw)
+        
+        # Store session
+        roleplay_sessions[roleplay_id] = {
+            "topic": request.topic,
+            "difficulty": request.difficulty,
+            "persona_type": request.persona_type,
+            "persona_name": result.get("persona_name", "AI Character"),
+            "conversation_history": [],
+            "turn_count": 0,
+            "scene_context": result.get("scene_context", "")
+        }
+        
+        return {
+            "roleplay_id": roleplay_id,
+            "persona_name": result.get("persona_name", "AI Character"),
+            "persona_type": request.persona_type,
+            "opening_line": result.get("opening_line", "Hello! Let's practice."),
+            "scene_context": result.get("scene_context", f"Practicing {request.topic}"),
+            "user_goal": result.get("user_goal", f"Practice your {request.topic} skills")
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/roleplay-message", response_model=RoleplayMessageResponse)
+def roleplay_message(request: RoleplayMessageRequest):
+    """Send a message in an active roleplay session."""
+    try:
+        from agent.tools import RoleplayResponseTool
+        
+        # Get session
+        session = roleplay_sessions.get(request.roleplay_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Roleplay session not found")
+        
+        # Add user message to history
+        session["conversation_history"].append({
+            "role": "user",
+            "message": request.user_message
+        })
+        
+        # Generate response
+        tool = RoleplayResponseTool(agent.client)
+        raw = tool.execute(
+            persona_type=session["persona_type"],
+            persona_name=session["persona_name"],
+            conversation_history=session["conversation_history"],
+            user_message=request.user_message,
+            turn_count=request.turn_count,
+            scenario=session["topic"]
+        )
+        
+        result = agent._extract_json(raw)
+        
+        response_type = result.get("type", "dialogue")
+        
+        if response_type == "coach_feedback":
+            # Add coach feedback to history
+            session["conversation_history"].append({
+                "role": "coach",
+                "message": f"Coach Feedback at turn {request.turn_count}"
+            })
+            
+            # Add persona resume to history
+            if result.get("persona_resume"):
+                session["conversation_history"].append({
+                    "role": "persona",
+                    "message": result.get("persona_resume")
+                })
+            
+            return RoleplayMessageResponse(
+                type="coach_feedback",
+                politeness_score=result.get("politeness_score", 75),
+                grammar_notes=result.get("grammar_notes", []),
+                vocab_suggestions=result.get("vocab_suggestions", []),
+                encouragement=result.get("encouragement", "Keep going!"),
+                persona_resume=result.get("persona_resume", "")
+            )
+        else:
+            # Regular dialogue
+            persona_response = result.get("persona_response", "...")
+            
+            session["conversation_history"].append({
+                "role": "persona",
+                "message": persona_response
+            })
+            
+            return RoleplayMessageResponse(
+                type="dialogue",
+                persona_response=persona_response
+            )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/end-roleplay", response_model=EndRoleplayResponse)
+def end_roleplay(request: EndRoleplayRequest):
+    """End a roleplay session and provide summary."""
+    try:
+        session = roleplay_sessions.get(request.roleplay_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Roleplay session not found")
+        
+        total_turns = len([msg for msg in session["conversation_history"] if msg["role"] == "user"])
+        
+        # Clean up session
+        del roleplay_sessions[request.roleplay_id]
+        
+        return {
+            "final_message": f"Great job! You completed {total_turns} turns of conversation practice.",
+            "total_turns": total_turns
+        }
+    
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

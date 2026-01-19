@@ -5,6 +5,8 @@ import { generatePractice } from '../api';
 export default function Home() {
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState('beginner');
+  const [mode, setMode] = useState<'exercise' | 'roleplay'>('exercise');
+  const [personaType, setPersonaType] = useState('friendly');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -19,19 +21,30 @@ export default function Home() {
     setLoading(true);
     
     try {
-      const result = await generatePractice(topic, difficulty);
-      
-      // Pass exercises to practice page
-      navigate('/practice', { 
-        state: { 
-          exercises: result.exercises,
-          topic,
-          difficulty
-        } 
-      });
+      if (mode === 'roleplay') {
+        // Navigate to roleplay mode
+        navigate('/roleplay', {
+          state: {
+            topic,
+            difficulty,
+            personaType
+          }
+        });
+      } else {
+        // Generate exercises and navigate to practice
+        const result = await generatePractice(topic, difficulty);
+        
+        navigate('/practice', { 
+          state: { 
+            exercises: result.exercises,
+            topic,
+            difficulty
+          } 
+        });
+      }
     } catch (error) {
-      console.error('Error generating practice:', error);
-      alert('Failed to generate exercises. Make sure the backend is running!');
+      console.error('Error:', error);
+      alert('Failed to start session. Make sure the backend is running!');
     } finally {
       setLoading(false);
     }
@@ -58,6 +71,43 @@ export default function Home() {
         {/* Form */}
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Mode Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Choose Practice Mode
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMode('exercise')}
+                  className={`py-4 px-4 rounded-lg font-medium transition-all duration-200 ${
+                    mode === 'exercise'
+                      ? 'bg-primary-500 text-white shadow-md scale-105'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  disabled={loading}
+                >
+                  <div className="text-2xl mb-1">📝</div>
+                  <div>Exercise Mode</div>
+                  <div className="text-xs opacity-75 mt-1">Answer questions</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('roleplay')}
+                  className={`py-4 px-4 rounded-lg font-medium transition-all duration-200 ${
+                    mode === 'roleplay'
+                      ? 'bg-primary-500 text-white shadow-md scale-105'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  disabled={loading}
+                >
+                  <div className="text-2xl mb-1">🎭</div>
+                  <div>Roleplay Mode</div>
+                  <div className="text-xs opacity-75 mt-1">Interactive conversation</div>
+                </button>
+              </div>
+            </div>
+
             {/* Topic Input */}
             <div>
               <label htmlFor="topic" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -98,6 +148,38 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Persona Selection (only for roleplay mode) */}
+            {mode === 'roleplay' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Choose your conversation partner
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: 'friendly', emoji: '😊', label: 'Friendly Helper' },
+                    { value: 'grumpy_waiter', emoji: '😠', label: 'Grumpy Waiter' },
+                    { value: 'lost_tourist', emoji: '😰', label: 'Lost Tourist' },
+                    { value: 'strict_teacher', emoji: '👩‍🏫', label: 'Strict Teacher' }
+                  ].map((persona) => (
+                    <button
+                      key={persona.value}
+                      type="button"
+                      onClick={() => setPersonaType(persona.value)}
+                      className={`py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                        personaType === persona.value
+                          ? 'bg-primary-500 text-white shadow-md scale-105'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                      disabled={loading}
+                    >
+                      <div className="text-2xl mb-1">{persona.emoji}</div>
+                      <div className="text-sm">{persona.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
@@ -110,11 +192,11 @@ export default function Home() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Generating exercises...
+                  {mode === 'roleplay' ? 'Starting roleplay...' : 'Generating exercises...'}
                 </span>
               ) : (
                 <span className="flex items-center justify-center">
-                  Start Learning
+                  {mode === 'roleplay' ? 'Begin Roleplay' : 'Start Learning'}
                   <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
