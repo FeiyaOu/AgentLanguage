@@ -3,7 +3,8 @@ FastAPI backend for the Language Learning Agent.
 """
 
 import os
-from typing import List, Dict, Any
+import json
+from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -72,6 +73,16 @@ class ScoreAnswersResponse(BaseModel):
     detailed_scores: List[Dict[str, Any]]
     weak_areas: List[str]
     recommendations: str
+    suggested_exercise_type: Optional[str] = None
+
+
+class AskTutorRequest(BaseModel):
+    question: str
+    context: Optional[Dict[str, Any]] = None
+
+
+class AskTutorResponse(BaseModel):
+    answer: str
 
 
 @app.get("/")
@@ -105,13 +116,15 @@ def generate_practice(request: GeneratePracticeRequest):
             "message": f"Generated {len(exercises)} practice exercises for {request.topic}"
         }
     
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/score-answers", response_model=ScoreAnswersResponse)
 def score_answers(request: ScoreAnswersRequest):
-    """Score user answers and identify weak areas."""
+    """Score user answers and return rich per-question analysis."""
 
     try:
         if not request.exercises:
@@ -122,27 +135,69 @@ def score_answers(request: ScoreAnswersRequest):
                 detail=f"Answers length ({len(request.answers)}) does not match exercises length ({len(request.exercises)})",
             )
 
+        def _norm(text: str) -> str:
+            return " ".join(str(text or "").strip().lower().split())
+
+        # Ask the AI tool for richer per-question feedback.
+        ai_result: Optional[Dict[str, Any]] = None
+        try:
+            from agent.tools import ScoreAndAnalyzeTool
+
+            tool = ScoreAndAnalyzeTool(agent.client)
+            raw = tool.execute(request.exercises, request.answers)
+            extracted = agent._extract_json(raw)  # best-effort JSON extraction
+            if isinstance(extracted, dict):
+                ai_result = extracted
+        except Exception:
+            ai_result = None
+
+        # Build a robust merged result that always includes question/user/correct text.
+        ai_scores_by_num: Dict[int, Dict[str, Any]] = {}
+        if ai_result and isinstance(ai_result.get("detailed_scores"), list):
+            for item in ai_result["detailed_scores"]:
+                try:
+                    qn = int(item.get("question_num"))
+                except Exception:
+                    continue
+                ai_scores_by_num[qn] = item
+
         detailed_scores: List[Dict[str, Any]] = []
         correct_count = 0
         incorrect_types = set()
 
         for index, (exercise, user_answer) in enumerate(zip(request.exercises, request.answers)):
+            question_num = index + 1
+            exercise_type = str(exercise.get("type", "")).strip()
             expected = str(exercise.get("correct_answer", "")).strip()
+            question_text = str(exercise.get("question", "")).strip()
             actual = str(user_answer or "").strip()
 
-            is_correct = expected.lower() == actual.lower() if expected else False
+            ai_item = ai_scores_by_num.get(question_num, {})
+
+            # Hybrid correctness: deterministic for structured types, AI for open-ended.
+            if exercise_type in {"multiple_choice", "fill_in_the_blank", "fill_blank"}:
+                is_correct = _norm(actual) == _norm(expected) if expected else False
+            else:
+                is_correct = bool(ai_item.get("correct"))
+
             if is_correct:
                 correct_count += 1
-                feedback = "Correct!"
             else:
-                exercise_type = str(exercise.get("type", "")).strip()
                 if exercise_type:
                     incorrect_types.add(exercise_type)
-                feedback = f"answer: {expected}" if expected else "Incorrect."
+
+            feedback = (
+                str(ai_item.get("feedback")).strip()
+                if ai_item.get("feedback")
+                else ("Correct!" if is_correct else (f"Expected: {expected}" if expected else "Incorrect."))
+            )
 
             detailed_scores.append(
                 {
-                    "question_num": index + 1,
+                    "question_num": question_num,
+                    "question": str(ai_item.get("question") or question_text or "").strip(),
+                    "user_answer": str(ai_item.get("user_answer") or actual or "").strip(),
+                    "correct_answer": str(ai_item.get("correct_answer") or expected or "").strip(),
                     "correct": is_correct,
                     "feedback": feedback,
                 }
@@ -151,13 +206,26 @@ def score_answers(request: ScoreAnswersRequest):
         total = len(request.exercises)
         score_percentage = int(round((correct_count / total) * 100)) if total else 0
 
-        weak_areas = sorted(list(incorrect_types))
-        if correct_count == total:
-            recommendations = "Excellent work — keep practicing to maintain consistency."
-        elif weak_areas:
-            recommendations = "Review the questions you missed and focus on improving accuracy in these exercise types."
-        else:
-            recommendations = "Review the questions you missed and try again."
+        weak_areas = (
+            ai_result.get("weak_areas")
+            if ai_result and isinstance(ai_result.get("weak_areas"), list)
+            else sorted(list(incorrect_types))
+        )
+        suggested_exercise_type = (
+            str(ai_result.get("suggested_exercise_type")).strip()
+            if ai_result and ai_result.get("suggested_exercise_type")
+            else (weak_areas[0] if weak_areas else None)
+        )
+
+        recommendations = (
+            str(ai_result.get("recommendations")).strip()
+            if ai_result and ai_result.get("recommendations")
+            else (
+                "Excellent work — keep practicing to maintain consistency."
+                if correct_count == total
+                else "Review the questions you missed and try again."
+            )
+        )
 
         return {
             "total_score": f"{correct_count}/{total}",
@@ -165,7 +233,29 @@ def score_answers(request: ScoreAnswersRequest):
             "detailed_scores": detailed_scores,
             "weak_areas": weak_areas,
             "recommendations": recommendations,
+            "suggested_exercise_type": suggested_exercise_type,
         }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/ask-tutor", response_model=AskTutorResponse)
+def ask_tutor(request: AskTutorRequest):
+    """Ask the AI tutor a question about specific context."""
+    try:
+        context_str = ""
+        if request.context:
+            context_str = f"\nContext: {json.dumps(request.context)}"
+        
+        user_input = f"User asks a follow-up question: {request.question}{context_str}"
+        
+        # Use simple RESPONSE from agent
+        response = agent.process_user_input(user_input)
+        
+        return {"answer": response}
 
     except HTTPException:
         raise
