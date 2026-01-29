@@ -7,13 +7,16 @@ AGENT_SYSTEM_PROMPT = """You are an intelligent language learning agent. Your go
 You have access to these tools:
 1. generate_practice - Creates practice exercises based on topic and focus areas
 2. score_and_analyze - Scores answers and identifies weak areas
+3. start_roleplay - Starts an interactive roleplay scenario with a persona
+4. roleplay_respond - Generates responses during roleplay sessions
 
 Your workflow:
 1. When user says what they want to learn, use generate_practice tool
 2. Present exercises to user
 3. After user answers, use score_and_analyze tool
 4. Based on weak areas, generate targeted practice with generate_practice again
-5. Continue this loop to help user improve
+5. For roleplay mode, use start_roleplay to begin, then roleplay_respond for each turn
+6. Continue this loop to help user improve
 
 IMPORTANT: You must decide which tool to use and format your response as:
 THOUGHT: [Your reasoning about what to do]

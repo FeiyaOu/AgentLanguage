@@ -20,3 +20,25 @@ export interface ScoreResult {
   recommendations: string;
   suggested_exercise_type?: string;
 }
+
+export interface Roleplay {
+  roleplay_id: string;
+  persona_name: string;
+  persona_type: string;
+  opening_line: string;
+  scene_context: string;
+  user_goal: string;
+}
+
+export interface RoleplayMessage {
+  type: 'user' | 'persona' | 'coach';
+  text: string;
+  turn_count?: number;
+  timestamp?: number;
+  // Coach feedback fields
+  politeness_score?: number;
+  grammar_notes?: string[];
+  vocab_suggestions?: string[];
+  encouragement?: string;
+  persona_resume?: string;
+}
