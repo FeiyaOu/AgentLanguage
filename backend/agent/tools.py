@@ -162,7 +162,7 @@ class RoleplayTool(Tool):
         )
         self.llm = llm_client
     
-    def execute(self, scenario: str, persona_type: str = "friendly", difficulty: str = "beginner") -> str:
+    def execute(self, scenario: str, persona_type: str = "friendly", difficulty: str = "beginner", custom_description: str = None) -> str:
         """Generate roleplay opening scene with persona."""
         
         persona_configs = {
@@ -184,22 +184,31 @@ class RoleplayTool(Tool):
             }
         }
         
-        persona_config = persona_configs.get(persona_type, persona_configs["friendly"])
+        # Handle custom persona
+        if persona_type == "custom" and custom_description:
+            persona_config = {
+                "name": "Custom Character",
+                "traits": custom_description
+            }
+            custom_prompt_addition = f"\nCreate a unique name for this character based on their description."
+        else:
+            persona_config = persona_configs.get(persona_type, persona_configs["friendly"])
+            custom_prompt_addition = ""
         
         prompt = f"""Create an opening scene for a language learning roleplay scenario.
 
 Scenario: {scenario}
 Difficulty: {difficulty}
 Persona: {persona_config["name"]}
-Traits: {persona_config["traits"]}
+Traits: {persona_config["traits"]}{custom_prompt_addition}
 
-You are playing the role of {persona_config["name"]}. Set the scene and speak your first line in character.
+You are playing the role of this character. Set the scene and speak your first line in character.
 
 The user's goal is to successfully navigate this conversation (e.g., order food, ask for directions, etc.).
 
 Return ONLY a JSON object:
 {{
-  "persona_name": "{persona_config["name"]}",
+  "persona_name": "Character's name",
   "persona_type": "{persona_type}",
   "opening_line": "Your first in-character line",
   "scene_context": "Brief description of the setting",

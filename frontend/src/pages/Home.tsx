@@ -113,14 +113,17 @@ export default function Home() {
             {/* Topic Input */}
             <div>
               <label htmlFor="topic" className="block text-sm font-semibold text-gray-700 mb-2">
-                What would you like to learn?
+                {mode === 'roleplay' ? 'What scenario would you like to practice?' : 'What would you like to learn?'}
               </label>
               <input
                 id="topic"
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g., restaurant English, travel phrases, business meetings..."
+                placeholder={mode === 'roleplay' 
+                  ? "e.g., ordering at a restaurant, checking into a hotel, asking for directions..."
+                  : "e.g., restaurant English, travel phrases, business meetings..."
+                }
                 className="input-field"
                 disabled={loading}
               />
