@@ -7,6 +7,7 @@ export default function Home() {
   const [difficulty, setDifficulty] = useState('beginner');
   const [mode, setMode] = useState<'exercise' | 'roleplay'>('exercise');
   const [personaType, setPersonaType] = useState('friendly');
+  const [customDescription, setCustomDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -27,7 +28,8 @@ export default function Home() {
           state: {
             topic,
             difficulty,
-            personaType
+            personaType,
+            customDescription: personaType === 'custom' ? customDescription : undefined
           }
         });
       } else {
@@ -154,17 +156,23 @@ export default function Home() {
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Choose your conversation partner
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 mb-4">
                   {[
                     { value: 'friendly', emoji: '😊', label: 'Friendly Helper' },
                     { value: 'grumpy_waiter', emoji: '😠', label: 'Grumpy Waiter' },
                     { value: 'lost_tourist', emoji: '😰', label: 'Lost Tourist' },
-                    { value: 'strict_teacher', emoji: '👩‍🏫', label: 'Strict Teacher' }
+                    { value: 'strict_teacher', emoji: '👩‍🏫', label: 'Strict Teacher' },
+                    { value: 'custom', emoji: '✍️', label: 'Custom Partner' }
                   ].map((persona) => (
                     <button
                       key={persona.value}
                       type="button"
-                      onClick={() => setPersonaType(persona.value)}
+                      onClick={() => {
+                        setPersonaType(persona.value);
+                        if (persona.value !== 'custom') {
+                          setCustomDescription('');
+                        }
+                      }}
                       className={`py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
                         personaType === persona.value
                           ? 'bg-primary-500 text-white shadow-md scale-105'
@@ -177,6 +185,46 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+
+                {/* Custom Persona Description */}
+                {personaType === 'custom' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="customDescription" className="block text-sm font-semibold text-gray-700 mb-2">
+                        Describe your conversation partner
+                      </label>
+                      <textarea
+                        id="customDescription"
+                        value={customDescription}
+                        onChange={(e) => setCustomDescription(e.target.value)}
+                        placeholder="Describe the personality, role, and behavior of your conversation partner..."
+                        className="input-field min-h-[100px] resize-y"
+                        disabled={loading}
+                      />
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-2">💡 Try these examples (click to use):</p>
+                      <div className="space-y-2">
+                        {[
+                          "A shy barista at a busy café who loves talking about coffee but gets nervous speaking English with customers",
+                          "An enthusiastic street vendor at a night market who speaks very fast and uses lots of local slang",
+                          "A busy hotel receptionist who is always polite but constantly multitasking and in a hurry"
+                        ].map((example, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setCustomDescription(example)}
+                            className="w-full text-left text-xs p-2 rounded border border-gray-300 hover:border-primary-400 hover:bg-primary-50 transition-colors"
+                            disabled={loading}
+                          >
+                            {example}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

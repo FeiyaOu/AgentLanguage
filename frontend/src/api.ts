@@ -53,12 +53,14 @@ export const resetSession = async (): Promise<void> => {
 export const startRoleplay = async (
   topic: string,
   difficulty: string = 'beginner',
-  personaType: string = 'friendly'
+  personaType: string = 'friendly',
+  customDescription?: string
 ): Promise<Roleplay> => {
   const response = await api.post('/api/start-roleplay', {
     topic,
     difficulty,
     persona_type: personaType,
+    custom_description: customDescription,
   });
   return response.data;
 };

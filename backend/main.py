@@ -89,6 +89,7 @@ class StartRoleplayRequest(BaseModel):
     topic: str
     difficulty: str = "beginner"
     persona_type: str = "friendly"
+    custom_description: Optional[str] = None
 
 
 class StartRoleplayResponse(BaseModel):
@@ -333,7 +334,8 @@ def start_roleplay(request: StartRoleplayRequest):
         raw = tool.execute(
             scenario=request.topic,
             persona_type=request.persona_type,
-            difficulty=request.difficulty
+            difficulty=request.difficulty,
+            custom_description=request.custom_description
         )
         
         # Extract JSON
@@ -347,7 +349,8 @@ def start_roleplay(request: StartRoleplayRequest):
             "persona_name": result.get("persona_name", "AI Character"),
             "conversation_history": [],
             "turn_count": 0,
-            "scene_context": result.get("scene_context", "")
+            "scene_context": result.get("scene_context", ""),
+            "custom_description": request.custom_description
         }
         
         return {

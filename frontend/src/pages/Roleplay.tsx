@@ -8,10 +8,11 @@ export default function Roleplay() {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { topic, difficulty, personaType } = location.state as {
+  const { topic, difficulty, personaType, customDescription } = location.state as {
     topic: string;
     difficulty: string;
     personaType: string;
+    customDescription?: string;
   } || {};
 
   const [roleplay, setRoleplay] = useState<RoleplayType | null>(null);
@@ -29,7 +30,7 @@ export default function Roleplay() {
       return;
     }
     initializeRoleplay();
-  }, [topic, difficulty, personaType]);
+  }, [topic, difficulty, personaType, customDescription]);
 
   useEffect(() => {
     scrollToBottom();
@@ -42,7 +43,7 @@ export default function Roleplay() {
   const initializeRoleplay = async () => {
     try {
       setLoading(true);
-      const data = await startRoleplay(topic, difficulty, personaType);
+      const data = await startRoleplay(topic, difficulty, personaType, customDescription);
       setRoleplay(data);
       
       // Add opening message
