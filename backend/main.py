@@ -5,8 +5,10 @@ FastAPI backend for the Language Learning Agent.
 import os
 import json
 import re
+import time
+from collections import defaultdict
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -44,6 +46,78 @@ if not api_key:
 agent = LanguageLearningAgent(api_key)
 
 
+# ---------------------------------------------------------------------------
+# Per-IP sliding-window rate limiter (in-memory, no external dependencies)
+# ---------------------------------------------------------------------------
+class RateLimiter:
+    """Simple in-memory sliding-window rate limiter keyed by client IP."""
+
+    def __init__(self, per_minute: int = 10, per_hour: int = 30):
+        self.per_minute = per_minute
+        self.per_hour = per_hour
+        # {ip: [timestamp, …]}
+        self._hits: Dict[str, list] = defaultdict(list)
+
+    def _prune(self, ip: str) -> None:
+        """Remove timestamps older than 1 hour."""
+        cutoff = time.time() - 3600
+        self._hits[ip] = [t for t in self._hits[ip] if t > cutoff]
+
+    def check(self, ip: str) -> Optional[str]:
+        """Return an error message if rate limit exceeded, else None."""
+        now = time.time()
+        self._prune(ip)
+        timestamps = self._hits[ip]
+
+        recent_minute = [t for t in timestamps if t > now - 60]
+        if len(recent_minute) >= self.per_minute:
+            return f"Rate limit exceeded — max {self.per_minute} requests per minute. Please wait a moment."
+
+        if len(timestamps) >= self.per_hour:
+            return f"Rate limit exceeded — max {self.per_hour} requests per hour. Take a break and come back soon!"
+
+        return None
+
+    def record(self, ip: str) -> None:
+        """Record a hit for the given IP."""
+        self._hits[ip].append(time.time())
+
+
+tutor_limiter = RateLimiter(per_minute=10, per_hour=30)
+roleplay_start_limiter = RateLimiter(per_minute=5, per_hour=15)
+roleplay_msg_limiter = RateLimiter(per_minute=12, per_hour=60)
+persona_suggest_limiter = RateLimiter(per_minute=5, per_hour=15)
+
+# ---------------------------------------------------------------------------
+# Concurrent session tracker & session garbage collection
+# ---------------------------------------------------------------------------
+MAX_SESSIONS_PER_IP = 2
+MAX_HINTS_PER_SESSION = 3
+SESSION_TTL_SECONDS = 30 * 60  # 30 minutes
+MAX_ROLEPLAY_MSG_WORDS = 100
+
+# {ip: set(roleplay_id, …)}
+_ip_sessions: Dict[str, set] = defaultdict(set)
+
+
+def _gc_expired_sessions() -> None:
+    """Lazy garbage-collection: remove sessions idle for > SESSION_TTL_SECONDS."""
+    now = time.time()
+    expired_ids = [
+        rid for rid, sess in roleplay_sessions.items()
+        if now - sess.get("last_active", 0) > SESSION_TTL_SECONDS
+    ]
+    for rid in expired_ids:
+        sess = roleplay_sessions.pop(rid, None)
+        if sess:
+            ip = sess.get("client_ip", "")
+            _ip_sessions.get(ip, set()).discard(rid)
+
+
+def _get_client_ip(req: Request) -> str:
+    return req.client.host if req.client else "unknown"
+
+
 # Request/Response models
 class GeneratePracticeRequest(BaseModel):
     topic: str
@@ -78,9 +152,15 @@ class ScoreAnswersResponse(BaseModel):
     suggested_exercise_type: Optional[str] = None
 
 
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+
 class AskTutorRequest(BaseModel):
     question: str
     context: Optional[Dict[str, Any]] = None
+    history: List[ChatMessage] = []  # previous turns for multi-turn chat
 
 
 class AskTutorResponse(BaseModel):
@@ -321,19 +401,62 @@ def score_answers(request: ScoreAnswersRequest):
 
 
 @app.post("/api/ask-tutor", response_model=AskTutorResponse)
-def ask_tutor(request: AskTutorRequest):
-    """Ask the AI tutor a question about specific context."""
+def ask_tutor(request: AskTutorRequest, req: Request):
+    """Ask the AI tutor a question, with multi-turn history and rate limiting."""
+
+    # --- Rate limiting (per IP) ---
+    client_ip = req.client.host if req.client else "unknown"
+    error_msg = tutor_limiter.check(client_ip)
+    if error_msg:
+        raise HTTPException(status_code=429, detail=error_msg)
+
+    # --- Word-count validation (server-side) ---
+    word_count = len(request.question.split())
+    if word_count > 50:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Question too long ({word_count} words). Please keep it under 50 words.",
+        )
+
     try:
-        context_str = ""
+        # Build the system message with question context
+        system_content = (
+            "You are a friendly, encouraging English-language tutor. "
+            "Answer the student's question clearly and concisely. "
+            "Use simple examples when helpful. Keep answers under 50 words."
+        )
         if request.context:
-            context_str = f"\nContext: {json.dumps(request.context)}"
-        
-        user_input = f"User asks a follow-up question: {request.question}{context_str}"
-        
-        # Use simple RESPONSE from agent
-        response = agent.process_user_input(user_input)
-        
-        return {"answer": response}
+            system_content += (
+                f"\n\nThe student is asking about this exercise:\n"
+                f"Question: {request.context.get('question', 'N/A')}\n"
+                f"Student's answer: {request.context.get('user_answer', 'N/A')}\n"
+                f"Correct answer: {request.context.get('correct_answer', 'N/A')}\n"
+                f"Feedback: {request.context.get('feedback', 'N/A')}"
+            )
+
+        messages: List[Dict[str, str]] = [{"role": "system", "content": system_content}]
+
+        # Append conversation history (capped at last 10 messages for safety)
+        for msg in request.history[-10:]:
+            messages.append({"role": msg.role, "content": msg.content})
+
+        # Append the current question
+        messages.append({"role": "user", "content": request.question})
+
+        # Call OpenAI directly (bypass agent tool loop — tutor is a simple Q&A)
+        completion = agent.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            max_tokens=100,
+            temperature=0.7,
+        )
+
+        answer = completion.choices[0].message.content.strip()
+
+        # Record the hit only on success
+        tutor_limiter.record(client_ip)
+
+        return {"answer": answer}
 
     except HTTPException:
         raise
@@ -356,8 +479,14 @@ roleplay_sessions: Dict[str, Dict[str, Any]] = {}
 
 
 @app.post("/api/suggest-personas", response_model=SuggestPersonasResponse)
-def suggest_personas(request: SuggestPersonasRequest):
+def suggest_personas(request: SuggestPersonasRequest, req: Request):
     """Suggest 3-4 contextually appropriate personas for a given scenario."""
+    # Rate limit
+    client_ip = _get_client_ip(req)
+    err = persona_suggest_limiter.check(client_ip)
+    if err:
+        raise HTTPException(status_code=429, detail=err)
+
     try:
         prompt = f"""Given this English-learning roleplay scenario: "{request.scenario}"
 Difficulty level: {request.difficulty}
@@ -386,6 +515,7 @@ Rules:
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.8,
+            max_tokens=300,
         )
 
         raw = response.choices[0].message.content
@@ -404,6 +534,7 @@ Rules:
                 traits=str(p.get("traits", "friendly and helpful")),
             ))
 
+        persona_suggest_limiter.record(client_ip)
         return {"personas": result}
 
     except HTTPException:
@@ -413,8 +544,28 @@ Rules:
 
 
 @app.post("/api/start-roleplay", response_model=StartRoleplayResponse)
-def start_roleplay(request: StartRoleplayRequest):
+def start_roleplay(request: StartRoleplayRequest, req: Request):
     """Start a new interactive roleplay session."""
+    # Rate limit
+    client_ip = _get_client_ip(req)
+    err = roleplay_start_limiter.check(client_ip)
+    if err:
+        raise HTTPException(status_code=429, detail=err)
+
+    # GC expired sessions first
+    _gc_expired_sessions()
+
+    # Concurrent session cap
+    active_for_ip = _ip_sessions.get(client_ip, set())
+    # Prune stale references
+    active_for_ip = {rid for rid in active_for_ip if rid in roleplay_sessions}
+    _ip_sessions[client_ip] = active_for_ip
+    if len(active_for_ip) >= MAX_SESSIONS_PER_IP:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many active sessions (max {MAX_SESSIONS_PER_IP}). End an existing session first.",
+        )
+
     try:
         import uuid
         from agent.tools import RoleplayTool
@@ -456,7 +607,12 @@ def start_roleplay(request: StartRoleplayRequest):
             "goal_progress": 0,
             "max_turns": max_turns,
             "custom_description": request.custom_description,
+            "hint_count": 0,
+            "last_active": time.time(),
+            "client_ip": client_ip,
         }
+        _ip_sessions[client_ip].add(roleplay_id)
+        roleplay_start_limiter.record(client_ip)
         
         return {
             "roleplay_id": roleplay_id,
@@ -473,8 +629,14 @@ def start_roleplay(request: StartRoleplayRequest):
 
 
 @app.post("/api/roleplay-message", response_model=RoleplayMessageResponse)
-def roleplay_message(request: RoleplayMessageRequest):
+def roleplay_message(request: RoleplayMessageRequest, req: Request):
     """Send a message in an active roleplay session."""
+    # Rate limit
+    client_ip = _get_client_ip(req)
+    err = roleplay_msg_limiter.check(client_ip)
+    if err:
+        raise HTTPException(status_code=429, detail=err)
+
     try:
         from agent.tools import RoleplayResponseTool
 
@@ -507,12 +669,38 @@ def roleplay_message(request: RoleplayMessageRequest):
                 return status
             return "in_progress"
         
-        # Get session
+        # Get session (with TTL check)
         session = roleplay_sessions.get(request.roleplay_id)
         if not session:
             raise HTTPException(status_code=404, detail="Roleplay session not found")
+        if time.time() - session.get("last_active", 0) > SESSION_TTL_SECONDS:
+            roleplay_sessions.pop(request.roleplay_id, None)
+            ip = session.get("client_ip", "")
+            _ip_sessions.get(ip, set()).discard(request.roleplay_id)
+            raise HTTPException(status_code=410, detail="Session expired due to inactivity.")
+        session["last_active"] = time.time()
 
         mode = (request.mode or "chat").strip().lower()
+
+        # Word-count validation for user messages
+        user_message_raw = (request.user_message or "").strip()
+        if mode != "hint" and user_message_raw:
+            word_count = len(user_message_raw.split())
+            if word_count > MAX_ROLEPLAY_MSG_WORDS:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Message too long ({word_count} words). Keep it under {MAX_ROLEPLAY_MSG_WORDS} words.",
+                )
+
+        # Hint cap
+        if mode == "hint":
+            hint_count = int(session.get("hint_count", 0))
+            if hint_count >= MAX_HINTS_PER_SESSION:
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"You've used all {MAX_HINTS_PER_SESSION} coach hints for this session.",
+                )
+            session["hint_count"] = hint_count + 1
         consume_turn = request.consume_turn
         if consume_turn is None:
             consume_turn = mode != "hint"
@@ -537,7 +725,7 @@ def roleplay_message(request: RoleplayMessageRequest):
                 turns_remaining=0,
             )
         
-        user_message = (request.user_message or "").strip()
+        user_message = user_message_raw
         if mode != "hint":
             session["conversation_history"].append({
                 "role": "user",
@@ -614,6 +802,9 @@ def roleplay_message(request: RoleplayMessageRequest):
                 turns_remaining=turns_remaining,
                 persona_response=persona_response
             )
+
+        # Record rate-limit hit only on success
+        roleplay_msg_limiter.record(client_ip)
     
     except HTTPException:
         raise
@@ -631,7 +822,9 @@ def end_roleplay(request: EndRoleplayRequest):
         
         total_turns = len([msg for msg in session["conversation_history"] if msg["role"] == "user"])
         
-        # Clean up session
+        # Clean up session + IP tracker
+        ip = session.get("client_ip", "")
+        _ip_sessions.get(ip, set()).discard(request.roleplay_id)
         del roleplay_sessions[request.roleplay_id]
         
         return {

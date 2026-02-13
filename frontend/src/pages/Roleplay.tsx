@@ -18,6 +18,10 @@ export default function Roleplay() {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
+  // --- Constants ---
+  const MAX_MSG_WORDS = 100;
+  const MAX_HINTS = 3;
+
   const { topic, difficulty, personaType, customDescription } = location.state as {
     topic: string;
     difficulty: string;
@@ -35,6 +39,8 @@ export default function Roleplay() {
   const [coachFeedback, setCoachFeedback] = useState<RoleplayMessage | null>(null);
   const [showBriefing, setShowBriefing] = useState(true);
   const [gettingHint, setGettingHint] = useState(false);
+  const [hintCount, setHintCount] = useState(0);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   const [maxTurns, setMaxTurns] = useState(6);
   const [turnsRemaining, setTurnsRemaining] = useState(6);
@@ -76,6 +82,8 @@ export default function Roleplay() {
       setAchieved(false);
       setSessionOver(false);
       setProgressPulse(0);
+      setHintCount(0);
+      setChatError(null);
     } catch (error) {
       console.error('Error starting roleplay:', error);
       alert('Failed to start roleplay. Please try again.');
@@ -101,6 +109,14 @@ export default function Roleplay() {
     e.preventDefault();
     if (!inputMessage.trim() || sending) return;
     if (sessionOver || achieved || turnsRemaining <= 0) return;
+
+    // Word-count guard
+    const wordCount = inputMessage.trim().split(/\s+/).length;
+    if (wordCount > MAX_MSG_WORDS) {
+      setChatError(`Message too long (${wordCount} words). Keep it under ${MAX_MSG_WORDS} words.`);
+      return;
+    }
+    setChatError(null);
 
     if (!roleplay) return;
 
@@ -139,8 +155,14 @@ export default function Roleplay() {
       } else {
         setMessages(prev => [...prev, response]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
+      if (error?.response?.status === 429) {
+        setChatError(error.response.data?.detail ?? 'Rate limit reached. Please wait a moment.');
+      } else if (error?.response?.status === 410) {
+        setChatError('Session expired. Please start a new roleplay.');
+        setSessionOver(true);
+      }
     } finally {
       setSending(false);
     }
@@ -149,6 +171,11 @@ export default function Roleplay() {
   const handleGetHint = async () => {
     if (!roleplay || gettingHint) return;
     if (sessionOver || achieved) return;
+    if (hintCount >= MAX_HINTS) {
+      setChatError(`You've used all ${MAX_HINTS} coach hints for this session.`);
+      return;
+    }
+    setChatError(null);
 
     setGettingHint(true);
     try {
@@ -162,8 +189,12 @@ export default function Roleplay() {
       if (typeof hint.achieved === 'boolean') setAchieved(hint.achieved);
       setCoachFeedback(hint);
       setShowCoachModal(true);
-    } catch (error) {
+      setHintCount(prev => prev + 1);
+    } catch (error: any) {
       console.error('Error getting hint:', error);
+      if (error?.response?.status === 429) {
+        setChatError(error.response.data?.detail ?? 'Rate limit reached. Please wait.');
+      }
     } finally {
       setGettingHint(false);
     }
@@ -304,12 +335,12 @@ export default function Roleplay() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleGetHint}
-            disabled={gettingHint || showCoachModal || sessionOver || achieved}
+            disabled={gettingHint || showCoachModal || sessionOver || achieved || hintCount >= MAX_HINTS}
             className="text-xs font-semibold px-3 py-1 rounded-full border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-indigo-200 dark:hover:border-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-400 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:border-slate-200 dark:disabled:border-slate-700 transition-colors flex items-center gap-1"
-            title="Get a coach hint (doesn't consume a turn)"
+            title={hintCount >= MAX_HINTS ? 'No hints remaining' : `Get a coach hint (${MAX_HINTS - hintCount} left)`}
           >
             <SparklesIcon className={`w-4 h-4 ${gettingHint ? 'animate-spin' : ''}`} />
-            Ask Coach
+            Ask Coach ({MAX_HINTS - hintCount})
           </button>
           <button 
             onClick={handleEndRoleplay}
@@ -512,6 +543,22 @@ export default function Roleplay() {
 
       {/* Input Area */}
       <div className="bg-white dark:bg-slate-900 p-4 border-t border-slate-100 dark:border-slate-700/50 transition-colors duration-300">
+        {/* Error / rate-limit banner */}
+        {chatError && (
+          <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-xs text-center">
+            {chatError}
+          </div>
+        )}
+        {/* Word count indicator */}
+        {inputMessage.trim() && (
+          <div className={`text-xs mb-1 text-right ${
+            inputMessage.trim().split(/\s+/).length > MAX_MSG_WORDS
+              ? 'text-red-500 dark:text-red-400 font-semibold'
+              : 'text-slate-400 dark:text-slate-500'
+          }`}>
+            {inputMessage.trim().split(/\s+/).length}/{MAX_MSG_WORDS} words
+          </div>
+        )}
         <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
            <input 
              type="text"

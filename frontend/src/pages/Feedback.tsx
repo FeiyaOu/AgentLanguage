@@ -1,7 +1,14 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { ScoreResult, Exercise } from '../types';
 import { askTutor } from '../api';
+
+// --- Constants ---
+const MAX_TURNS_PER_QUESTION = 3;
+const MAX_TURNS_PER_SESSION = 15;
+const MAX_WORDS_PER_MESSAGE = 50;
+
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 export default function Feedback() {
   const location = useLocation();
@@ -14,67 +21,98 @@ export default function Feedback() {
     answers: string[];
   };
 
-  const [tutorState, setTutorState] = useState<{
-    isOpen: boolean;
-    question: string;
-    answer: string;
-    loading: boolean;
-    contextQuestionNum: number | null;
-  }>({
-    isOpen: false,
-    question: '',
-    answer: '',
-    loading: false,
-    contextQuestionNum: null,
-  });
+  // --- Tutor chat state ---
+  const [tutorOpen, setTutorOpen] = useState(false);
+  const [activeQuestion, setActiveQuestion] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  // Per-question conversation histories: { [questionNum]: ChatMessage[] }
+  const [histories, setHistories] = useState<Record<number, ChatMessage[]>>({});
+  // Per-question turn counters
+  const [turnCounts, setTurnCounts] = useState<Record<number, number>>({});
+  // Session-wide turn counter
+  const [sessionTurns, setSessionTurns] = useState(0);
+  // Error / info banner inside the modal
+  const [tutorError, setTutorError] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const turnsForActive = activeQuestion !== null ? (turnCounts[activeQuestion] ?? 0) : 0;
+  const questionCapReached = turnsForActive >= MAX_TURNS_PER_QUESTION;
+  const sessionCapReached = sessionTurns >= MAX_TURNS_PER_SESSION;
+  const sendDisabled = loading || questionCapReached || sessionCapReached;
+
+  // Build context object for the active question
+  const getActiveContext = () => {
+    if (activeQuestion === null) return undefined;
+    const score = result.detailed_scores.find(s => s.question_num === activeQuestion);
+    if (!score) return undefined;
+    return {
+      question: score.question,
+      user_answer: score.user_answer,
+      correct_answer: score.correct_answer,
+      feedback: score.feedback,
+    };
+  };
+
+  const openTutorForQuestion = (questionNum: number) => {
+    setActiveQuestion(questionNum);
+    setTutorOpen(true);
+    setTutorError(null);
+    // Scroll to bottom after render
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  };
+
+  const handleSend = async (userText: string) => {
+    if (!userText.trim() || activeQuestion === null) return;
+
+    // Guard: caps
+    if (questionCapReached || sessionCapReached) return;
+
+    // Guard: word limit
+    const wordCount = userText.trim().split(/\s+/).length;
+    if (wordCount > MAX_WORDS_PER_MESSAGE) {
+      setTutorError(`Please keep your question under ${MAX_WORDS_PER_MESSAGE} words (currently ${wordCount}).`);
+      return;
+    }
+
+    setLoading(true);
+    setTutorError(null);
+
+    // Append user message to history immediately (optimistic)
+    const prevHistory = histories[activeQuestion] ?? [];
+    const updatedHistory = [...prevHistory, { role: 'user' as const, content: userText }];
+    setHistories(prev => ({ ...prev, [activeQuestion]: updatedHistory }));
+
+    try {
+      const response = await askTutor(userText, getActiveContext(), prevHistory);
+
+      const withResponse = [...updatedHistory, { role: 'assistant' as const, content: response.answer }];
+      setHistories(prev => ({ ...prev, [activeQuestion]: withResponse }));
+
+      // Increment counters
+      setTurnCounts(prev => ({ ...prev, [activeQuestion]: (prev[activeQuestion] ?? 0) + 1 }));
+      setSessionTurns(prev => prev + 1);
+    } catch (err: any) {
+      // Handle 429 rate limit
+      if (err?.response?.status === 429) {
+        setTutorError(err.response.data?.detail ?? 'Rate limit exceeded. Please wait a moment.');
+        // Remove optimistic user message
+        setHistories(prev => ({ ...prev, [activeQuestion]: prevHistory }));
+      } else {
+        const errMsg = { role: 'assistant' as const, content: 'Sorry, something went wrong. Please try again.' };
+        setHistories(prev => ({ ...prev, [activeQuestion]: [...updatedHistory, errMsg] }));
+      }
+    } finally {
+      setLoading(false);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    }
+  };
 
   const handleContinue = () => {
     const focusAreas = [...result.weak_areas];
     if (result.suggested_exercise_type) {
       focusAreas.push(`preferred style: ${result.suggested_exercise_type}`);
     }
-
-    navigate('/practice', { 
-      state: { topic, difficulty, focusAreas } 
-    });
-  };
-
-  const handleAskTutor = async (userQuestion: string) => {
-    if (!userQuestion.trim()) return;
-
-    setTutorState(prev => ({ ...prev, loading: true, question: userQuestion }));
-    
-    try {
-      // Find context if tied to a specific question
-      let context = undefined;
-      if (tutorState.contextQuestionNum !== null) {
-        const score = result.detailed_scores.find(s => s.question_num === tutorState.contextQuestionNum);
-        if (score) {
-          context = {
-            question: score.question,
-            user_answer: score.user_answer,
-            correct_answer: score.correct_answer,
-            feedback: score.feedback
-          };
-        }
-      }
-
-      const response = await askTutor(userQuestion, context);
-      setTutorState(prev => ({ ...prev, answer: response.answer, loading: false }));
-    } catch (error) {
-      console.error('Error asking tutor:', error);
-      setTutorState(prev => ({ ...prev, answer: 'Sorry, I could not answer that right now.', loading: false }));
-    }
-  };
-
-  const openTutorForQuestion = (questionNum: number) => {
-    setTutorState({
-      isOpen: true,
-      question: '',
-      answer: '',
-      loading: false,
-      contextQuestionNum: questionNum
-    });
+    navigate('/practice', { state: { topic, difficulty, focusAreas } });
   };
 
   const getScoreColor = (percentage: number) => {
@@ -247,88 +285,120 @@ export default function Feedback() {
         </div>
       </div>
 
-      {/* Tutor Modal */}
-      {tutorState.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col">
-                <div className="p-4 border-b flex justify-between items-center bg-primary-50 rounded-t-xl">
-                    <h3 className="font-bold text-gray-800 flex items-center">
-                        <span className="text-2xl mr-2">👨‍🏫</span> 
-                        AI Tutor
-                        {tutorState.contextQuestionNum && <span className="ml-2 text-sm font-normal text-gray-500">(Question {tutorState.contextQuestionNum})</span>}
-                    </h3>
-                    <button 
-                        onClick={() => setTutorState(prev => ({ ...prev, isOpen: false }))}
-                        className="text-gray-500 hover:text-gray-700"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+      {/* Tutor Chat Panel */}
+      {tutorOpen && activeQuestion !== null && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-primary-50 dark:bg-slate-700 rounded-t-xl">
+              <div>
+                <h3 className="font-bold text-gray-800 dark:text-slate-100 flex items-center">
+                  <span className="text-2xl mr-2">👨‍🏫</span>
+                  AI Tutor
+                  <span className="ml-2 text-sm font-normal text-gray-500 dark:text-slate-400">
+                    (Question {activeQuestion})
+                  </span>
+                </h3>
+                <div className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 flex gap-3">
+                  <span>This Q: {turnsForActive}/{MAX_TURNS_PER_QUESTION} turns</span>
+                  <span>Session: {sessionTurns}/{MAX_TURNS_PER_SESSION}</span>
                 </div>
-                
-                <div className="p-4 overflow-y-auto flex-grow space-y-4">
-                    {!tutorState.answer && (
-                        <div className="bg-blue-50 p-4 rounded-lg text-blue-800 text-sm">
-                            Ask me anything about this question! For example: "Why is my answer wrong?" or "Can you explain the grammar rule?"
-                        </div>
-                    )}
-                    
-                    {tutorState.question && (
-                         <div className="flex justify-end">
-                            <div className="bg-primary-100 text-primary-900 p-3 rounded-lg rounded-tr-none max-w-[80%]">
-                                {tutorState.question}
-                            </div>
-                        </div>
-                    )}
-
-                    {tutorState.loading && (
-                        <div className="flex justify-start">
-                            <div className="bg-gray-100 p-3 rounded-lg rounded-tl-none flex items-center">
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce mr-1"></span>
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce mr-1 delay-75"></span>
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
-                            </div>
-                        </div>
-                    )}
-
-                    {tutorState.answer && (
-                        <div className="flex justify-start">
-                            <div className="bg-gray-100 text-gray-800 p-3 rounded-lg rounded-tl-none max-w-[90%] prose prose-sm">
-                                {tutorState.answer}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="p-4 border-t bg-gray-50 rounded-b-xl">
-                    <form 
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            const form = e.target as HTMLFormElement;
-                            const input = form.elements.namedItem('question') as HTMLInputElement;
-                            handleAskTutor(input.value);
-                            input.value = '';
-                        }}
-                        className="flex gap-2"
-                    >
-                        <input 
-                            type="text" 
-                            name="question"
-                            placeholder="Ask a question..."
-                            className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                            autoComplete="off"
-                        />
-                        <button 
-                            type="submit"
-                            disabled={tutorState.loading}
-                            className="btn-primary py-2 px-4"
-                        >
-                            Send
-                        </button>
-                    </form>
-                </div>
+              </div>
+              <button
+                onClick={() => setTutorOpen(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
+
+            {/* Chat messages */}
+            <div className="p-4 overflow-y-auto flex-grow space-y-3">
+              {/* Intro hint (only when no messages yet) */}
+              {!(histories[activeQuestion]?.length) && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-blue-800 dark:text-blue-200 text-sm">
+                  Ask me anything about this question! For example: "Why is my answer wrong?" or "Can you explain the grammar rule?"
+                </div>
+              )}
+
+              {/* Conversation bubbles */}
+              {(histories[activeQuestion] ?? []).map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`p-3 rounded-lg max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${
+                      msg.role === 'user'
+                        ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-900 dark:text-primary-100 rounded-tr-none'
+                        : 'bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200 rounded-tl-none'
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+
+              {/* Loading indicator */}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 dark:bg-slate-700 p-3 rounded-lg rounded-tl-none flex items-center gap-1">
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              )}
+
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Rate limit / cap banners */}
+            {tutorError && (
+              <div className="mx-4 mb-2 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-xs text-center">
+                {tutorError}
+              </div>
+            )}
+            {questionCapReached && (
+              <div className="mx-4 mb-2 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-300 text-xs text-center">
+                You've used all {MAX_TURNS_PER_QUESTION} follow-ups for this question. Try asking about a different question!
+              </div>
+            )}
+            {!questionCapReached && sessionCapReached && (
+              <div className="mx-4 mb-2 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-300 text-xs text-center">
+                You've reached the session limit of {MAX_TURNS_PER_SESSION} tutor questions. Start a new practice set to reset.
+              </div>
+            )}
+
+            {/* Input */}
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 rounded-b-xl">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const input = form.elements.namedItem('question') as HTMLInputElement;
+                  handleSend(input.value);
+                  input.value = '';
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  type="text"
+                  name="question"
+                  placeholder={sendDisabled ? 'Limit reached' : 'Ask a follow-up…'}
+                  disabled={sendDisabled}
+                  className="flex-1 rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  autoComplete="off"
+                />
+                <button
+                  type="submit"
+                  disabled={sendDisabled}
+                  className="btn-primary py-2 px-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Send
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>

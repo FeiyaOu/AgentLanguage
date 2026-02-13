@@ -224,7 +224,8 @@ Make it engaging and realistic!"""
         response = self.llm.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.8
+            temperature=0.8,
+            max_tokens=300,
         )
         
         return response.choices[0].message.content
@@ -361,8 +362,8 @@ Scene context: {scene_context}
 User mission goal: {user_goal}
 Turns remaining: {turns_remaining}
 
-Conversation so far:
-{json.dumps(conversation_history, indent=2)}
+Recent conversation:
+{json.dumps(conversation_history[-8:], indent=2)}
 
 User just said: "{user_message}"
 
@@ -379,10 +380,14 @@ Return ONLY a JSON object:
     "achieved": <true if the goal is achieved, else false>
 }}"""
         
+        # Choose max_tokens based on mode
+        _max_tokens = 400 if mode == "hint" else 250
+
         response = self.llm.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
+            temperature=0.7,
+            max_tokens=_max_tokens,
         )
         
         return response.choices[0].message.content
