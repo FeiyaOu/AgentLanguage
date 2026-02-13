@@ -2,6 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { suggestPersonas } from '../api';
 import type { SuggestedPersona } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  AcademicCapIcon, 
+  ChatBubbleBottomCenterTextIcon, 
+  SparklesIcon, 
+  ArrowRightIcon,
+  UserGroupIcon,
+  ArrowPathIcon
+} from '@heroicons/react/24/outline';
 
 const DIFFICULTY_INFO: Record<string, { label: string; desc: string }> = {
   beginner: { label: 'Beginner', desc: 'Simple vocabulary, short sentences' },
@@ -75,308 +84,278 @@ export default function Home() {
     onChange: (v: string) => void;
   }) => (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-2">Level</label>
-      <div className="space-y-2">
-        {Object.entries(DIFFICULTY_INFO).map(([key, { label, desc }]) => (
+      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Proficiency Level</label>
+      <div className="grid grid-cols-3 gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl transition-colors duration-200">
+        {Object.entries(DIFFICULTY_INFO).map(([key, { label }]) => (
           <button
             key={key}
             type="button"
             onClick={() => onChange(key)}
-            className={`w-full text-left px-4 py-2.5 rounded-lg transition-all duration-200 ${
+            className={`py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
               value === key
-                ? 'bg-primary-500 text-white shadow-sm'
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
-            <span className="font-medium">{label}</span>
-            <span className={`block text-xs mt-0.5 ${value === key ? 'text-white/80' : 'text-gray-500'}`}>
-              {desc}
-            </span>
+            {label}
           </button>
         ))}
       </div>
+      <p className="mt-2 text-xs text-slate-500 dark:text-slate-500 pl-1">
+        {DIFFICULTY_INFO[value].desc}
+      </p>
     </div>
   );
 
   return (
-    <div className="min-h-screen px-4 py-12">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen px-4 py-12 relative z-10">
+      <div className="max-w-6xl mx-auto">
         {/* ── Hero ── */}
-        <div className="text-center mb-12">
-          <div className="inline-block p-4 bg-primary-100 rounded-2xl mb-4">
-            <svg className="w-14 h-14 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-16"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-full shadow-sm mb-6 border border-slate-100 dark:border-slate-700 transition-colors">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+            </span>
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">AI-Powered Learning</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 mb-3">
-            Language Learning <span className="text-primary-500">Agent</span>
+          
+          <h1 className="text-5xl sm:text-7xl font-bold text-slate-900 dark:text-slate-100 mb-6 tracking-tight">
+            Fluent in <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">Minutes</span>.
           </h1>
-          <p className="text-lg text-gray-600 max-w-xl mx-auto">
-            Practice English with an AI that adapts to you — choose your path below
+          <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            Master any language scenario with an intelligent AI tutor that adapts to your learning style in real-time.
           </p>
-        </div>
+        </motion.div>
 
         {/* ── Two-pathway grid ── */}
-        <div className="grid md:grid-cols-2 gap-6 items-start">
+        <div className="grid lg:grid-cols-2 gap-8 items-start mb-24">
 
           {/* ════════ EXERCISE CARD ════════ */}
-          <form
-            onSubmit={handleExerciseStart}
-            className="bg-white rounded-2xl shadow-lg border-2 border-emerald-100 overflow-hidden flex flex-col"
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="group relative"
           >
-            {/* Card header */}
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-5 text-white">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">📝</span>
-                <h2 className="text-xl font-bold">Exercise Mode</h2>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-400 to-amber-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+            <form
+              onSubmit={handleExerciseStart}
+              className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-8 shadow-xl ring-1 ring-black/5 dark:ring-white/10 flex flex-col h-full transition-colors duration-300"
+            >
+              <div className="mb-6">
+                <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center mb-4 text-orange-600 dark:text-orange-400">
+                  <AcademicCapIcon className="w-7 h-7" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Drills & Practice</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-2">Target specific vocabulary and grammar with AI-generated quizzes.</p>
               </div>
-              <p className="text-emerald-100 text-sm">
-                Answer AI-generated questions and get scored instantly
-              </p>
-            </div>
 
-            {/* What to expect */}
-            <div className="px-6 pt-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">What to expect</p>
-              <ul className="text-sm text-gray-600 space-y-1.5 mb-5">
-                <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">✓</span> 5 targeted questions per session</li>
-                <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">✓</span> Multiple choice or fill-in-the-blank</li>
-                <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">✓</span> Instant scoring with per-question feedback</li>
-                <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">✓</span> Weak area report &amp; AI tutor follow-up</li>
-              </ul>
-            </div>
-
-            {/* Form fields */}
-            <div className="px-6 space-y-4 flex-1">
-              <div>
-                <label htmlFor="ex-topic" className="block text-sm font-semibold text-gray-700 mb-1">Topic</label>
-                <input
-                  id="ex-topic"
-                  type="text"
-                  value={exTopic}
-                  onChange={(e) => setExTopic(e.target.value)}
-                  placeholder="e.g., restaurant English, travel phrases, business meetings..."
-                  className="input-field"
-                />
+              <div className="space-y-6 flex-1">
+                <div>
+                  <label htmlFor="ex-topic" className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Topic</label>
+                  <input
+                    id="ex-topic"
+                    type="text"
+                    value={exTopic}
+                    onChange={(e) => setExTopic(e.target.value)}
+                    placeholder="e.g., Business Phrasal Verbs..."
+                    className="input-field"
+                  />
+                </div>
+                <DifficultySelector value={exDiff} onChange={setExDiff} />
               </div>
-              <DifficultySelector value={exDiff} onChange={setExDiff} />
-            </div>
 
-            {/* CTA */}
-            <div className="px-6 pb-6 pt-5">
-              <button
-                type="submit"
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                Start Exercises
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </button>
-            </div>
-          </form>
+              <div className="pt-8 mt-auto">
+                <button
+                  type="submit"
+                  className="btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  Start Practice
+                  <ArrowRightIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
+          </motion.div>
 
           {/* ════════ ROLEPLAY CARD ════════ */}
-          <form
-            onSubmit={handleRoleplayStart}
-            className="bg-white rounded-2xl shadow-lg border-2 border-primary-100 overflow-hidden flex flex-col"
+          <motion.div
+             initial={{ opacity: 0, x: 20 }}
+             animate={{ opacity: 1, x: 0 }}
+             transition={{ delay: 0.2 }}
+             className="group relative"
           >
-            {/* Card header */}
-            <div className="bg-gradient-to-r from-primary-500 to-amber-500 px-6 py-5 text-white">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">🎭</span>
-                <h2 className="text-xl font-bold">Roleplay Mode</h2>
-              </div>
-              <p className="text-orange-100 text-sm">
-                Have a live conversation with an AI character &amp; get coached
-              </p>
-            </div>
-
-            {/* What to expect */}
-            <div className="px-6 pt-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">What to expect</p>
-              <ul className="text-sm text-gray-600 space-y-1.5 mb-5">
-                <li className="flex items-start gap-2"><span className="text-primary-500 mt-0.5">✓</span> Chat with a unique AI persona</li>
-                <li className="flex items-start gap-2"><span className="text-primary-500 mt-0.5">✓</span> Coach feedback on grammar &amp; politeness every 3 turns</li>
-                <li className="flex items-start gap-2"><span className="text-primary-500 mt-0.5">✓</span> Vocabulary tips &amp; better phrasing suggestions</li>
-                <li className="flex items-start gap-2"><span className="text-primary-500 mt-0.5">✓</span> Adaptive dialogue that responds to your style</li>
-              </ul>
-            </div>
-
-            {/* Form fields */}
-            <div className="px-6 space-y-4 flex-1">
-              <div>
-                <label htmlFor="rp-topic" className="block text-sm font-semibold text-gray-700 mb-1">Scenario</label>
-                <input
-                  id="rp-topic"
-                  type="text"
-                  value={rpTopic}
-                  onChange={(e) => {
-                    setRpTopic(e.target.value);
-                    // Reset personas when scenario changes
-                    if (suggestedPersonas.length > 0) {
-                      setSuggestedPersonas([]);
-                      setSelectedPersona(null);
-                      setUseCustom(false);
-                      setPersonaError(null);
-                    }
-                  }}
-                  placeholder="e.g., ordering at a restaurant, checking into a hotel..."
-                  className="input-field"
-                />
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-400 to-red-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+            <form
+              onSubmit={handleRoleplayStart}
+              className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-8 shadow-xl ring-1 ring-black/5 dark:ring-white/10 flex flex-col h-full transition-colors duration-300"
+            >
+              <div className="mb-6">
+                <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center mb-4 text-orange-600 dark:text-orange-400">
+                  <ChatBubbleBottomCenterTextIcon className="w-7 h-7" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Roleplay Simulation</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-2">Immersive conversations with unique AI personalities.</p>
               </div>
 
-              <DifficultySelector value={rpDiff} onChange={(v) => {
-                setRpDiff(v);
-                if (suggestedPersonas.length > 0) {
-                  setSuggestedPersonas([]);
-                  setSelectedPersona(null);
-                  setUseCustom(false);
-                }
-              }} />
-
-              {/* Step 2: Find partners button */}
-              {suggestedPersonas.length === 0 && !loadingPersonas && (
-                <button
-                  type="button"
-                  onClick={handleFindPartners}
-                  disabled={!rpTopic.trim()}
-                  className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                    rpTopic.trim()
-                      ? 'bg-primary-100 text-primary-700 hover:bg-primary-200'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Find Conversation Partners
-                </button>
-              )}
-
-              {/* Loading state */}
-              {loadingPersonas && (
-                <div className="flex items-center justify-center py-6 gap-3 text-primary-600">
-                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span className="text-sm font-medium">Finding partners for your scenario…</span>
-                </div>
-              )}
-
-              {/* Error state */}
-              {personaError && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                  {personaError}
-                  <button
-                    type="button"
-                    onClick={handleFindPartners}
-                    className="block mx-auto mt-2 text-xs font-semibold text-red-700 underline"
-                  >
-                    Try again
-                  </button>
-                </div>
-              )}
-
-              {/* AI-generated persona cards */}
-              {suggestedPersonas.length > 0 && (
+              <div className="space-y-6 flex-1">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Pick a conversation partner
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    {suggestedPersonas.map((p) => (
+                  <label htmlFor="rp-topic" className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Scenario</label>
+                  <input
+                    id="rp-topic"
+                    type="text"
+                    value={rpTopic}
+                    onChange={(e) => {
+                      setRpTopic(e.target.value);
+                      if (suggestedPersonas.length > 0) {
+                        setSuggestedPersonas([]);
+                        setSelectedPersona(null);
+                        setUseCustom(false);
+                      }
+                    }}
+                    placeholder="e.g., Checking into a hotel..."
+                    className="input-field"
+                  />
+                </div>
+
+                <DifficultySelector value={rpDiff} onChange={setRpDiff} />
+
+                {/* Persona Selection Area */}
+                <AnimatePresence>
+                  {suggestedPersonas.length === 0 && !loadingPersonas && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }} 
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="pt-2"
+                    >
                       <button
-                        key={p.id}
                         type="button"
-                        onClick={() => { setSelectedPersona(p); setUseCustom(false); }}
-                        className={`p-3 rounded-lg text-left transition-all duration-200 border-2 ${
-                          selectedPersona?.id === p.id
-                            ? 'border-primary-500 bg-primary-50 shadow-sm'
-                            : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                        onClick={handleFindPartners}
+                        disabled={!rpTopic.trim()}
+                        className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 border-2 border-dashed ${
+                          rpTopic.trim()
+                            ? 'border-orange-200 dark:border-orange-500/50 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/10 hover:border-orange-300 dark:hover:border-orange-500'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                         }`}
                       >
-                        <div className="text-2xl mb-1">{p.emoji}</div>
-                        <div className="text-sm font-semibold text-gray-800 leading-tight">{p.name}</div>
-                        <div className="text-xs text-gray-500 mt-1 leading-snug">{p.traits}</div>
+                        <UserGroupIcon className="w-5 h-5" />
+                        Find Conversation Partners
                       </button>
-                    ))}
-                  </div>
-
-                  {/* Custom option — always available */}
-                  <button
-                    type="button"
-                    onClick={() => { setUseCustom(true); setSelectedPersona(null); }}
-                    className={`w-full py-2.5 rounded-lg border-2 border-dashed transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 ${
-                      useCustom
-                        ? 'border-primary-500 bg-primary-50 text-primary-700'
-                        : 'border-gray-300 text-gray-500 hover:border-primary-300 hover:text-primary-600'
-                    }`}
-                  >
-                    <span>✍️</span> Or describe your own partner…
-                  </button>
-
-                  {useCustom && (
-                    <textarea
-                      value={customDescription}
-                      onChange={(e) => setCustomDescription(e.target.value)}
-                      placeholder="Describe the personality, role, and behavior of your conversation partner..."
-                      className="input-field min-h-[80px] resize-y text-sm mt-2"
-                    />
+                    </motion.div>
                   )}
+                </AnimatePresence>
 
-                  {/* Regenerate link */}
-                  <button
-                    type="button"
-                    onClick={handleFindPartners}
-                    className="mt-2 text-xs text-primary-500 hover:text-primary-700 font-medium flex items-center gap-1"
+                {personaError && (
+                  <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl p-3">
+                    {personaError}
+                  </div>
+                )}
+
+                {loadingPersonas && (
+                  <div className="flex flex-col items-center justify-center py-8 text-orange-600 dark:text-orange-400">
+                    <ArrowPathIcon className="w-6 h-6 animate-spin mb-2" />
+                    <span className="text-sm font-medium">Summoning actors...</span>
+                  </div>
+                )}
+
+                {suggestedPersonas.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-3"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Regenerate partners
-                  </button>
-                </div>
-              )}
-            </div>
+                    <div className="flex justify-between items-end">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Choose Partner</label>
+                      <button type="button" onClick={handleFindPartners} className="text-xs text-orange-500 dark:text-orange-400 font-medium hover:text-orange-600">Refresh</button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      {suggestedPersonas.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => { setSelectedPersona(p); setUseCustom(false); }}
+                          className={`p-3 rounded-xl text-left transition-all duration-200 border relative overflow-hidden group/persona ${
+                            selectedPersona?.id === p.id
+                              ? 'border-orange-500 bg-orange-50/50 dark:bg-orange-900/30 shadow-sm'
+                              : 'border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-500/50 hover:bg-white dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="text-2xl mb-2">{p.emoji}</div>
+                          <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{p.name}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{p.traits}</div>
+                          {selectedPersona?.id === p.id && (
+                            <div className="absolute top-2 right-2 text-orange-500">
+                              <SparklesIcon className="w-4 h-4" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
 
-            {/* CTA */}
-            <div className="px-6 pb-6 pt-5">
-              <button
-                type="submit"
-                disabled={suggestedPersonas.length === 0 && !useCustom}
-                className={`w-full flex items-center justify-center gap-2 font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-200 ${
-                  (selectedPersona || (useCustom && customDescription.trim()))
-                    ? 'btn-primary'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                Begin Roleplay
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </button>
-            </div>
-          </form>
+                    <button
+                      type="button"
+                      onClick={() => { setUseCustom(true); setSelectedPersona(null); }}
+                      className={`w-full py-2 px-3 rounded-lg text-xs font-medium border transition-colors ${
+                        useCustom 
+                         ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-500 text-orange-700 dark:text-orange-300' 
+                         : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                    >
+                      Or describe a custom partner...
+                    </button>
+                    
+                    {useCustom && (
+                      <textarea
+                        value={customDescription}
+                        onChange={(e) => setCustomDescription(e.target.value)}
+                        placeholder="E.g., An angry chef who hates processed food..."
+                        className="input-field text-sm min-h-[80px]"
+                        autoFocus
+                      />
+                    )}
+                  </motion.div>
+                )}
+              </div>
+
+              <div className="pt-8 mt-auto">
+                <button
+                  type="submit"
+                  disabled={(suggestedPersonas.length === 0 && !useCustom) && !loadingPersonas}
+                  className="btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  Start Roleplay
+                  <ArrowRightIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </form>
+          </motion.div>
         </div>
 
-        {/* ── Accurate feature strip ── */}
-        <div className="mt-10 grid grid-cols-3 gap-6 text-center">
-          <div>
-            <div className="text-2xl mb-1">📝</div>
-            <p className="text-sm text-gray-600 font-medium">AI-Generated Questions</p>
-          </div>
-          <div>
-            <div className="text-2xl mb-1">🎭</div>
-            <p className="text-sm text-gray-600 font-medium">Live Conversation Practice</p>
-          </div>
-          <div>
-            <div className="text-2xl mb-1">⚡</div>
-            <p className="text-sm text-gray-600 font-medium">Instant Feedback</p>
-          </div>
-        </div>
+        {/* ── Features Strip ── */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="grid md:grid-cols-3 gap-6"
+        >
+          {[
+            { icon: AcademicCapIcon, title: "Smart Curriculum", desc: "Questions adapt to your proficiency level automatically." },
+            { icon: ChatBubbleBottomCenterTextIcon, title: "Natural Dialogue", desc: "Speak freely—the AI understands context and nuance." },
+            { icon: SparklesIcon, title: "Instant Feedback", desc: "Get corrections on grammar and style in real-time." }
+          ].map((feature, i) => (
+            <div key={i} className="bg-white/50 dark:bg-slate-800/50 p-6 rounded-2xl border border-white/40 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+              <feature.icon className="w-8 h-8 text-orange-500 mb-4" />
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">{feature.title}</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{feature.desc}</p>
+            </div>
+          ))}
+        </motion.div>
       </div>
     </div>
   );
-}
+  }

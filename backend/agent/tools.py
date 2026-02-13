@@ -35,48 +35,52 @@ class GeneratePracticeTool(Tool):
         focus_text = ""
         if focus_areas:
             focus_text = f"\nFocus on these weak areas: {', '.join(focus_areas)}"
-        
+
         prompt = f"""Generate 5 practice exercises for learning English in this context: {topic}
 Difficulty level: {difficulty}{focus_text}
 
-Supported exercise types:
-1. "multiple_choice": Standard 4-option questions.
-2. "fill_in_the_blank": User types the missing word/phrase.
-3. "roleplay": User responses to a scenario (open-ended).
+IMPORTANT CONSTRAINTS:
+- Do NOT require any free typing from the learner.
+- Every exercise must be answerable via selection or reordering.
 
-Decide the best exercise type based on the request. If "roleplay" or "open formatted" is suggested in the focus areas, use "roleplay". Default to "multiple_choice".
+Supported exercise types (ONLY these):
+1. "multiple_choice": Standard 4-option single-answer questions.
+2. "banked_cloze": A sentence with a single blank ("___") + options bank. User selects the best option.
+3. "sentence_reordering": Provide shuffled word tokens as bubbles; user taps to reorder into a correct sentence.
 
-Return ONLY a JSON array with the chosen structure.
+Return ONLY a JSON array of 5 exercises. No markdown, no explanation.
 
-Example (Multiple Choice):
-[
-  {{
-    "question": "Complete: I'd like to ___ a table for two.",
+Schemas:
+
+Multiple Choice:
+{{
+    "question": string,
     "type": "multiple_choice",
-    "correct_answer": "reserve",
-    "options": ["reserve", "order", "make", "take"]
-  }}
-]
+    "correct_answer": string,
+    "options": [string, string, string, string]
+}}
 
-Example (Fill in blank):
-[
-  {{
-    "question": "Type the missing word: I am ___ forward to meeting you.",
-    "type": "fill_in_the_blank",
-    "correct_answer": "looking"
-  }}
-]
+Banked Cloze:
+{{
+    "question": "The apple ___ red.",
+    "type": "banked_cloze",
+    "correct_answer": "is",
+    "options": ["are", "is", "am", "be"]
+}}
 
-Example (Roleplay):
-[
-  {{
-    "question": "You are at a cafe. The waiter asks 'What can I get you?'. You want a black coffee. Write your response:",
-    "type": "roleplay",
-    "correct_answer": "I'd like a black coffee, please." 
-  }}
-]
+Sentence Reordering:
+{{
+    "question": "Reorder the words to form a correct sentence.",
+    "type": "sentence_reordering",
+    "correct_answer": "I drink coffee in the morning.",
+    "tokens": ["morning", "drink", "I", "coffee", "in", "the"]
+}}
 
-Keep exercises practical and conversational."""
+Guidelines:
+- Keep options plausible (especially for grammar: tense, subject-verb agreement, articles, prepositions).
+- Keep sentences short and conversational.
+- For "sentence_reordering", tokens MUST be intentionally shuffled (not already in the correct order).
+"""
 
         response = self.llm.chat.completions.create(
             model="gpt-4o-mini",
@@ -119,7 +123,7 @@ Provide:
 2. Overall score (X/Y)
 3. Identify weak areas and patterns in mistakes
 4. Suggest specific focus areas for next practice
-5. Suggest the best type of exercise for improvement (e.g. roleplay, drill, explanation, conversation)
+5. Suggest the best type of exercise for improvement from: "multiple_choice", "banked_cloze", "sentence_reordering".
 
 Return ONLY a JSON object with this structure:
 {{
@@ -138,7 +142,7 @@ Return ONLY a JSON object with this structure:
   ],
   "weak_areas": ["ordering drinks", "using polite phrases"],
   "recommendations": "Focus on using 'would like' instead of 'want' for polite requests.",
-  "suggested_exercise_type": "roleplay"
+    "suggested_exercise_type": "banked_cloze"
 }}
 This is just an example, generate different feedback.
 """
@@ -243,13 +247,17 @@ class RoleplayResponseTool(Tool):
         conversation_history: List[Dict[str, str]],
         user_message: str,
         turn_count: int,
-        scenario: str
+        scenario: str,
+        scene_context: str = "",
+        user_goal: str = "",
+        turns_remaining: int = 0,
+        mode: str = "chat",
     ) -> str:
         """Generate persona response or coach feedback."""
-        
-        is_coach_turn = turn_count > 0 and turn_count % 3 == 0
-        
-        if is_coach_turn:
+
+        mode = (mode or "chat").strip().lower()
+
+        if mode == "hint":
             # Generate coach feedback
             recent_turns = conversation_history[-6:] if len(conversation_history) >= 6 else conversation_history
 
@@ -274,15 +282,25 @@ class RoleplayResponseTool(Tool):
                 [f"{_speaker(turn)}: {_turn_text(turn)}" for turn in recent_turns]
             )
             
-            prompt = f"""You are an expert English language coach analyzing a student's conversation practice.
+            prompt = f"""You are an expert English coach helping a student complete a roleplay mission.
 
 SCENARIO: {scenario}
+SCENE CONTEXT: {scene_context}
+USER GOAL (Mission): {user_goal}
+TURNS REMAINING: {turns_remaining}
 STUDENT'S CONVERSATION PARTNER: {persona_name}
 
 RECENT CONVERSATION TO ANALYZE:
 {conversation_text}
 
-YOUR TASK: Carefully analyze the STUDENT's messages (not the partner's) and provide specific, personalized feedback.
+YOUR TASK:
+1) Give the student a concise hint for the NEXT best move toward the USER GOAL.
+2) Estimate progress toward the goal (0-100).
+
+IMPORTANT UX RULES:
+- Be brief and concrete.
+- If the student is off-topic, clearly redirect them.
+- Do NOT continue the roleplay as {persona_name}.
 
 ANALYSIS REQUIREMENTS:
 
@@ -319,8 +337,11 @@ Return ONLY a valid JSON object with these exact fields:
   "politeness_score": <number 0-100 based on your analysis>,
   "grammar_notes": [<list of specific grammar corrections or "No grammar issues detected - great job!">],
   "vocab_suggestions": [<list of vocabulary improvements or useful phrases>],
-  "encouragement": "<specific positive feedback about their performance>",
-  "persona_resume": "<{persona_name}'s next line to continue the scene>"
+    "encouragement": "<a short hint that moves them toward the goal>",
+    "persona_resume": "",
+    "goal_progress": <number 0-100 estimating how close the student is to the goal>,
+    "goal_status": "in_progress" | "off_track" | "achieved",
+    "achieved": <true if the goal is achieved, else false>
 }}
 
 IMPORTANT: Generate REAL feedback based on what the student actually said. Do NOT use example values."""
@@ -333,9 +354,12 @@ IMPORTANT: Generate REAL feedback based on what the student actually said. Do NO
                 "friendly": "warm, patient, encouraging"
             }.get(persona_type, "friendly and helpful")
             
-            prompt = f"""You are {persona_name}, a character in a language learning roleplay.
+            prompt = f"""You are {persona_name}, a character in a language learning roleplay game.
 Your traits: {persona_traits}
 Scenario: {scenario}
+Scene context: {scene_context}
+User mission goal: {user_goal}
+Turns remaining: {turns_remaining}
 
 Conversation so far:
 {json.dumps(conversation_history, indent=2)}
@@ -344,10 +368,15 @@ User just said: "{user_message}"
 
 Respond in character. Keep it natural and conversational (1-3 sentences).
 
+Also estimate progress toward the user's mission goal.
+
 Return ONLY a JSON object:
 {{
   "type": "dialogue",
-  "persona_response": "Your in-character response here"
+    "persona_response": "Your in-character response here",
+    "goal_progress": <number 0-100 estimating mission progress>,
+    "goal_status": "in_progress" | "off_track" | "achieved",
+    "achieved": <true if the goal is achieved, else false>
 }}"""
         
         response = self.llm.chat.completions.create(
