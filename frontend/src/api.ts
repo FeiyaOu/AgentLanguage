@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Exercise, ScoreResult, Roleplay, RoleplayMessage } from './types';
+import type { Exercise, ScoreResult, Roleplay, RoleplayMessage, SuggestedPersona } from './types';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -47,6 +47,18 @@ export const askTutor = async (
 
 export const resetSession = async (): Promise<void> => {
   await api.post('/api/reset');
+};
+
+// Suggest personas for a scenario
+export const suggestPersonas = async (
+  scenario: string,
+  difficulty: string = 'beginner'
+): Promise<SuggestedPersona[]> => {
+  const response = await api.post('/api/suggest-personas', {
+    scenario,
+    difficulty,
+  });
+  return response.data.personas;
 };
 
 // Roleplay API functions

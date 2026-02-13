@@ -21,6 +21,13 @@ export interface ScoreResult {
   suggested_exercise_type?: string;
 }
 
+export interface SuggestedPersona {
+  id: string;
+  emoji: string;
+  name: string;
+  traits: string;
+}
+
 export interface Roleplay {
   roleplay_id: string;
   persona_name: string;

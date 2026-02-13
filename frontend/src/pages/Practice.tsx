@@ -1,41 +1,99 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Exercise } from '../types';
-import { scoreAnswers } from '../api';
+import { generatePractice, scoreAnswers } from '../api';
 
 export default function Practice() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Accept either the new config-only state OR the legacy exercises-in-state format
   const state = location.state as
     | {
-        exercises: Exercise[];
+        exercises?: Exercise[];
         topic: string;
         difficulty: string;
+        focusAreas?: string[];
       }
     | undefined;
 
-  const exercises = state?.exercises ?? [];
   const topic = state?.topic ?? '';
   const difficulty = state?.difficulty ?? 'beginner';
+  const focusAreas = useMemo(() => state?.focusAreas ?? [], [state?.focusAreas]);
 
+  const [exercises, setExercises] = useState<Exercise[]>(state?.exercises ?? []);
   const [answers, setAnswers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const hasFetched = useRef(false);
 
+  // Redirect if no config at all
   useEffect(() => {
-    if (!state || !Array.isArray(state.exercises) || state.exercises.length === 0) {
+    if (!state || !state.topic) {
       navigate('/', { replace: true });
     }
   }, [state, navigate]);
 
+  // Fetch exercises on mount if not provided in state (new flow)
+  useEffect(() => {
+    if (hasFetched.current) return;
+    if (!state || !state.topic) return;
+    // If exercises were passed directly (e.g. from Feedback "Practice Weak Areas"), skip fetch
+    if (state.exercises && state.exercises.length > 0) return;
+
+    hasFetched.current = true;
+    setGenerating(true);
+    setError(null);
+
+    generatePractice(topic, difficulty, focusAreas)
+      .then((result) => {
+        setExercises(result.exercises);
+        setAnswers(new Array(result.exercises.length).fill(''));
+      })
+      .catch((err) => {
+        console.error('Error generating exercises:', err);
+        setError('Failed to generate exercises. Make sure the backend is running!');
+      })
+      .finally(() => setGenerating(false));
+  }, [state, topic, difficulty, focusAreas]);
+
+  // Sync answers array when exercises change (e.g. passed via state)
   useEffect(() => {
     if (exercises.length > 0 && answers.length !== exercises.length) {
       setAnswers(new Array(exercises.length).fill(''));
     }
   }, [exercises.length, answers.length]);
 
-  if (!state || !Array.isArray(state.exercises) || state.exercises.length === 0) {
-    return null;
+  // Early returns
+  if (!state || !state.topic) return null;
+
+  if (generating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Generating exercises for <strong>{topic}</strong>…</p>
+          <p className="text-gray-400 text-sm mt-1">This usually takes a few seconds</p>
+        </div>
+      </div>
+    );
   }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Something went wrong</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button onClick={() => navigate('/')} className="btn-primary">Back to Home</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (exercises.length === 0) return null;
 
   const handleAnswerChange = (index: number, value: string) => {
     const newAnswers = [...answers];
