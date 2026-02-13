@@ -78,9 +78,9 @@ export default function Feedback() {
   };
 
   const getScoreColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-600 bg-green-50';
-    if (percentage >= 60) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (percentage >= 80) return 'text-green-700 bg-green-50 dark:text-green-300 dark:bg-green-900/20';
+    if (percentage >= 60) return 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-900/20';
+    return 'text-red-700 bg-red-50 dark:text-red-300 dark:bg-red-900/20';
   };
 
   const getScoreEmoji = (percentage: number) => {
@@ -95,10 +95,10 @@ export default function Feedback() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">{getScoreEmoji(result.score_percentage)}</div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-2">
             Great Work!
           </h1>
-          <p className="text-gray-600">Here's how you did</p>
+          <p className="text-slate-600 dark:text-slate-300">Here's how you did</p>
         </div>
 
         {/* Score Card */}
@@ -113,8 +113,8 @@ export default function Feedback() {
               </div>
             </div>
              {result.suggested_exercise_type && (
-               <div className="mt-4 text-gray-600">
-                  Recommended Practice: <span className="font-semibold text-primary-600 capitalize">{result.suggested_exercise_type}</span>
+                 <div className="mt-4 text-slate-600 dark:text-slate-300">
+                    Recommended Practice: <span className="font-semibold text-primary-600 dark:text-primary-400 capitalize">{result.suggested_exercise_type}</span>
                </div>
             )}
           </div>
@@ -123,15 +123,15 @@ export default function Feedback() {
         {/* Detailed Scores */}
         {result.detailed_scores && result.detailed_scores.length > 0 && (
           <div className="card mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Question by Question</h2>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">Question by Question</h2>
             <div className="space-y-4">
               {result.detailed_scores.map((score, index) => (
                 <div
                   key={index}
                   className={`p-4 rounded-lg border-2 ${
                     score.correct
-                      ? 'border-green-200 bg-green-50'
-                      : 'border-red-200 bg-red-50'
+                      ? 'border-green-200 bg-green-50 dark:border-green-900/40 dark:bg-green-900/15'
+                      : 'border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-900/15'
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -151,20 +151,20 @@ export default function Feedback() {
                         </span>
                         <div className="w-full">
                             <div className="flex justify-between items-center mb-1">
-                                <span className="font-semibold text-gray-800">Question {score.question_num}</span>
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">Question {score.question_num}</span>
                             </div>
                             
                             {/* Question Text */}
-                            <p className="text-gray-900 font-medium mb-2">{score.question || "Question text unavailable"}</p>
+                            <p className="text-slate-900 dark:text-slate-100 font-medium mb-2">{score.question || "Question text unavailable"}</p>
                             
                             {/* Answers */}
                             <div className="grid gap-2 mb-3">
-                                <div className={`px-3 py-2 rounded ${score.correct ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'}`}>
-                                    <span className="font-semibold text-xs uppercase tracking-wider block opacity-75">Your Answer</span>
+                              <div className={`px-3 py-2 rounded ${score.correct ? 'bg-green-100 text-green-900 dark:bg-green-900/25 dark:text-green-100' : 'bg-red-100 text-red-900 dark:bg-red-900/25 dark:text-red-100'}`}>
+                                <span className="font-semibold text-xs uppercase tracking-wider block opacity-75">Your Answer</span>
                                     {score.user_answer || "No answer"}
                                 </div>
                                 {!score.correct && (
-                                    <div className="px-3 py-2 rounded bg-green-100 text-green-900">
+                                <div className="px-3 py-2 rounded bg-green-100 text-green-900 dark:bg-green-900/25 dark:text-green-100">
                                         <span className="font-semibold text-xs uppercase tracking-wider block opacity-75">Correct Answer</span>
                                         {score.correct_answer || "N/A"}
                                     </div>
@@ -172,7 +172,7 @@ export default function Feedback() {
                             </div>
 
                             {/* Logic/Feedback */}
-                            <div className="text-sm text-gray-700 bg-white bg-opacity-50 p-3 rounded">
+                            <div className="text-sm text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-900/40 p-3 rounded">
                                 <span className="font-semibold block mb-1">Feedback:</span>
                                 {score.feedback}
                             </div>
@@ -182,7 +182,7 @@ export default function Feedback() {
                     {/* Ask Tutor Button */}
                     <button
                         onClick={() => openTutorForQuestion(score.question_num)}
-                        className="ml-4 flex-shrink-0 text-primary-600 hover:text-primary-800 hover:bg-primary-50 p-2 rounded-full transition-colors"
+                      className="ml-4 flex-shrink-0 text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-slate-800/60 p-2 rounded-full transition-colors"
                         title="Ask AI Tutor about this"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,7 +199,7 @@ export default function Feedback() {
         {/* Weak Areas */}
         {result.weak_areas && result.weak_areas.length > 0 && (
           <div className="card mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
               <span className="mr-2">🎯</span>
               Areas to Focus On
             </h2>
@@ -207,15 +207,15 @@ export default function Feedback() {
               {result.weak_areas.map((area, index) => (
                 <span
                   key={index}
-                  className="px-4 py-2 bg-amber-100 text-amber-800 rounded-full font-medium"
+                  className="px-4 py-2 bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-200 rounded-full font-medium"
                 >
                   {area}
                 </span>
               ))}
             </div>
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-gray-700">
-                <span className="font-semibold text-blue-800">Tip: </span>
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-900/40">
+              <p className="text-slate-700 dark:text-slate-200">
+                <span className="font-semibold text-blue-800 dark:text-blue-300">Tip: </span>
                 {result.recommendations}
               </p>
             </div>

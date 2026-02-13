@@ -222,11 +222,11 @@ export default function Roleplay() {
   // Briefing Modal
   if (showBriefing) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm dark:bg-black/70">
         <motion.div 
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-lg w-full relative flex flex-col max-h-[85vh]"
+          className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden max-w-lg w-full relative flex flex-col max-h-[85vh] transition-colors duration-300"
         >
           <div className="bg-gradient-to-br from-orange-400 to-amber-500 p-8 text-white relative flex-shrink-0">
              <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
@@ -236,42 +236,42 @@ export default function Roleplay() {
           
           <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
             <div className="flex items-start gap-4">
-               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
+               <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 dark:text-blue-300 flex-shrink-0">
                  <UserIcon className="w-6 h-6" />
                </div>
                <div>
-                  <h3 className="font-bold text-slate-800">Your Role</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">Engage in a conversation naturally. Don't worry about making mistakes—that's how you learn!</p>
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100">Your Role</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Engage in a conversation naturally. Don't worry about making mistakes—that's how you learn!</p>
                </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 flex-shrink-0">
                 <SparklesIcon className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800">Your Mission</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{roleplay.user_goal}</p>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">Your Mission</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{roleplay.user_goal}</p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 flex-shrink-0">
                 <CpuChipIcon className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800">The Scene</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{roleplay.scene_context}</p>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">The Scene</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{roleplay.scene_context}</p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-               <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 flex-shrink-0">
+               <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-500 dark:text-purple-300 flex-shrink-0">
                  <CpuChipIcon className="w-6 h-6" />
                </div>
                <div>
-                  <h3 className="font-bold text-slate-800">AI Partner</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">{customDescription || `A generic ${personaType} character ready to chat.`}</p>
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100">AI Partner</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{customDescription || `A generic ${personaType} character ready to chat.`}</p>
                </div>
             </div>
 
@@ -288,24 +288,24 @@ export default function Roleplay() {
   }
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white shadow-2xl md:my-8 md:rounded-3xl overflow-hidden md:h-[calc(100vh-4rem)] border border-slate-200">
+    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white dark:bg-slate-900 shadow-2xl md:my-8 md:rounded-3xl overflow-hidden md:h-[calc(100vh-4rem)] border border-slate-200 dark:border-slate-700 transition-colors duration-300">
       
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 p-4 flex items-center justify-between z-10 sticky top-0">
+      <div className="bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-700/50 p-4 flex items-center justify-between z-10 sticky top-0 transition-colors duration-300">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-400 rounded-full flex items-center justify-center text-white font-bold shadow-md">
             AI
           </div>
           <div>
-            <h2 className="font-bold text-slate-800 leading-tight">Conversation</h2>
-            <p className="text-xs text-slate-500">{topic} • {difficulty}</p>
+            <h2 className="font-bold text-slate-800 dark:text-slate-100 leading-tight">Conversation</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{topic} • {difficulty}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleGetHint}
             disabled={gettingHint || showCoachModal || sessionOver || achieved}
-            className="text-xs font-semibold px-3 py-1 rounded-full border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-700 disabled:text-slate-300 disabled:border-slate-200 transition-colors flex items-center gap-1"
+            className="text-xs font-semibold px-3 py-1 rounded-full border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-indigo-200 dark:hover:border-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-400 disabled:text-slate-300 dark:disabled:text-slate-600 disabled:border-slate-200 dark:disabled:border-slate-700 transition-colors flex items-center gap-1"
             title="Get a coach hint (doesn't consume a turn)"
           >
             <SparklesIcon className={`w-4 h-4 ${gettingHint ? 'animate-spin' : ''}`} />
@@ -313,7 +313,7 @@ export default function Roleplay() {
           </button>
           <button 
             onClick={handleEndRoleplay}
-            className="text-xs font-semibold text-slate-400 hover:text-red-500 px-3 py-1 rounded-full border border-slate-200 hover:border-red-200 transition-colors"
+            className="text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-600 hover:border-red-200 dark:hover:border-red-500/50 transition-colors"
           >
             End Session
           </button>
@@ -321,24 +321,24 @@ export default function Roleplay() {
       </div>
 
       {/* Game HUD */}
-      <div className="bg-white border-b border-slate-100 px-6 py-4">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/50 px-6 py-4 transition-colors duration-300">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
           
           {/* Goal Progress - Clean & Large Percentage */}
           <div className="flex-1 w-full group relative cursor-help">
-             <div className="absolute bottom-full left-0 mb-3 w-56 bg-slate-800 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all pointer-events-none z-20">
+             <div className="absolute bottom-full left-0 mb-3 w-56 bg-slate-800 dark:bg-slate-700 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all pointer-events-none z-20">
               <p className="font-semibold mb-1">Goal Progress</p>
               <p>This bar fills up as you complete objectives in your conversation. Aim for 100%! 🎯</p>
-              <div className="absolute top-full left-6 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+              <div className="absolute top-full left-6 -mt-1 border-4 border-transparent border-t-slate-800 dark:border-t-slate-700"></div>
             </div>
 
             <div className="flex items-center gap-4">
                {/* Percentage Badge */}
                <div className={`
                  flex items-center justify-center w-14 h-14 rounded-2xl shadow-sm border-2 transition-all duration-300
-                 ${goalStatus === 'achieved' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 
-                   goalStatus === 'off_track' ? 'bg-amber-50 border-amber-100 text-amber-600' : 
-                   'bg-orange-50 border-orange-100 text-orange-600'}
+                 ${goalStatus === 'achieved' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400' : 
+                   goalStatus === 'off_track' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800 text-amber-600 dark:text-amber-400' : 
+                   'bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800 text-orange-600 dark:text-orange-400'}
                `}>
                  <span className="text-xl font-bold">{Math.max(0, Math.min(100, goalProgress))}%</span>
                </div>
@@ -346,15 +346,15 @@ export default function Roleplay() {
                {/* Bar & Label container */}
                <div className="flex-1 space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">Mission Progress</p>
-                    {goalStatus === 'achieved' && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">COMPLETED</span>}
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">Mission Progress</p>
+                    {goalStatus === 'achieved' && <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-full font-bold">COMPLETED</span>}
                   </div>
                   
                   <motion.div
                     key={progressPulse}
                     animate={goalStatus === 'off_track' ? { x: [0, -3, 3, -2, 2, 0] } : { x: 0 }}
                     transition={{ duration: 0.35 }}
-                    className="h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-100 group-hover:border-slate-200 transition-colors"
+                    className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden border border-slate-100 dark:border-slate-700 group-hover:border-slate-200 dark:group-hover:border-slate-600 transition-colors"
                   >
                     <motion.div
                       initial={false}
@@ -377,22 +377,22 @@ export default function Roleplay() {
           </div>
 
           {/* Vertical Divider (Hidden on mobile) */}
-          <div className="hidden sm:block w-px h-12 bg-slate-100"></div>
+          <div className="hidden sm:block w-px h-12 bg-slate-100 dark:bg-slate-700"></div>
 
           {/* Energy/Turns - Clean Visuals */}
           <div className="w-full sm:w-auto flex flex-col justify-center gap-1.5 group relative cursor-help">
-             <div className="absolute bottom-full right-0 mb-3 w-56 bg-slate-800 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all pointer-events-none z-20">
+             <div className="absolute bottom-full right-0 mb-3 w-56 bg-slate-800 dark:bg-slate-700 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all pointer-events-none z-20">
               <p className="font-semibold mb-1">Energy remaining</p>
               <p>Each message you send costs 1 unit of energy. Make your words count! ⚡</p>
-              <div className="absolute top-full right-12 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+              <div className="absolute top-full right-12 -mt-1 border-4 border-transparent border-t-slate-800 dark:border-t-slate-700"></div>
             </div>
 
             <div className="flex items-center justify-between sm:justify-end gap-2">
-               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-indigo-500 transition-colors">Energy</span>
-               <span className={`text-xs font-bold font-mono ${turnsRemaining < 2 ? 'text-red-500' : 'text-slate-500'}`}>{turnsRemaining}/{maxTurns}</span>
+               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">Energy</span>
+               <span className={`text-xs font-bold font-mono ${turnsRemaining < 2 ? 'text-red-500 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>{turnsRemaining}/{maxTurns}</span>
             </div>
             
-            <div className="flex items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 group-hover:border-indigo-100 transition-colors">
+            <div className="flex items-center bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-700 group-hover:border-indigo-100 dark:group-hover:border-indigo-900/30 transition-colors">
               {Array.from({ length: maxTurns }).map((_, idx) => {
                 const active = idx < turnsRemaining;
                 return (
@@ -400,8 +400,8 @@ export default function Roleplay() {
                     key={idx}
                     className={`w-5 h-5 mx-0.5 transition-all duration-300 ${
                       active 
-                        ? 'text-indigo-500 fill-indigo-500 drop-shadow-sm scale-100' 
-                        : 'text-slate-200 scale-90'
+                        ? 'text-indigo-500 dark:text-indigo-400 fill-indigo-500 dark:fill-indigo-400 drop-shadow-sm scale-100' 
+                        : 'text-slate-200 dark:text-slate-700 scale-90'
                     }`}
                   />
                 );
@@ -412,21 +412,21 @@ export default function Roleplay() {
       </div>
 
       {/* Context Card */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/50 px-4 py-3 transition-colors duration-300">
         <div className="grid gap-2">
-          <div className="text-xs text-slate-500">
-            <span className="font-semibold text-slate-700">Goal:</span> {roleplay.user_goal}
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Goal:</span> {roleplay.user_goal}
           </div>
-          <div className="text-xs text-slate-500">
-            <span className="font-semibold text-slate-700">Background:</span> {roleplay.scene_context}
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Background:</span> {roleplay.scene_context}
           </div>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 scroll-smooth">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/50 scroll-smooth transition-colors duration-300 custom-scrollbar">
         {messages.length === 0 && (
-          <div className="text-center text-slate-400 py-10 text-sm">
+          <div className="text-center text-slate-400 dark:text-slate-500 py-10 text-sm">
             Make the first move! Say "Hello" to start.
           </div>
         )}
@@ -445,7 +445,7 @@ export default function Roleplay() {
                   animate={{ opacity: 1, y: 0 }}
                   className="flex justify-center my-4"
                 >
-                  <div className="bg-slate-900 text-white text-xs px-4 py-2 rounded-full shadow-sm">
+                  <div className="bg-slate-900 dark:bg-slate-800 text-white text-xs px-4 py-2 rounded-full shadow-sm">
                     {msg.text}
                   </div>
                 </motion.div>
@@ -460,7 +460,7 @@ export default function Roleplay() {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex justify-center my-4"
                  >
-                    <div className="bg-blue-50 text-blue-800 text-xs px-4 py-2 rounded-full flex items-center gap-2 border border-blue-100 shadow-sm">
+                    <div className="bg-blue-50 dark:bg-blue-900/40 text-blue-800 dark:text-blue-100 text-xs px-4 py-2 rounded-full flex items-center gap-2 border border-blue-100 dark:border-blue-800 shadow-sm">
                       <SparklesIcon className="w-4 h-4" />
                       {msg.text}
                     </div>
@@ -476,15 +476,15 @@ export default function Roleplay() {
                 className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
-                   <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mr-2 flex-shrink-0 mt-1">
+                   <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 dark:text-orange-400 mr-2 flex-shrink-0 mt-1">
                      <CpuChipIcon className="w-5 h-5" />
                    </div>
                 )}
                 <div 
                   className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-sm text-sm leading-relaxed
                     ${isUser 
-                      ? 'bg-orange-500 text-white rounded-br-none' 
-                      : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'
+                      ? 'bg-orange-500 dark:bg-orange-600 text-white rounded-br-none' 
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-none'
                     }`}
                 >
                   {msg.text}
@@ -497,13 +497,13 @@ export default function Roleplay() {
         {/* Typing indicator */}
         {sending && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-             <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mr-2 mt-1">
+             <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 dark:text-orange-400 mr-2 mt-1">
                <CpuChipIcon className="w-5 h-5" />
              </div>
-             <div className="bg-white px-5 py-4 rounded-2xl rounded-bl-none border border-slate-100 shadow-sm flex gap-1">
-               <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce"></div>
-               <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-               <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+             <div className="bg-white dark:bg-slate-800 px-5 py-4 rounded-2xl rounded-bl-none border border-slate-100 dark:border-slate-700 shadow-sm flex gap-1">
+               <div className="w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full animate-bounce"></div>
+               <div className="w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+               <div className="w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
              </div>
           </motion.div>
         )}
@@ -511,7 +511,7 @@ export default function Roleplay() {
       </div>
 
       {/* Input Area */}
-      <div className="bg-white p-4 border-t border-slate-100">
+      <div className="bg-white dark:bg-slate-900 p-4 border-t border-slate-100 dark:border-slate-700/50 transition-colors duration-300">
         <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
            <input 
              type="text"
@@ -519,13 +519,13 @@ export default function Roleplay() {
              onChange={(e) => setInputMessage(e.target.value)}
              placeholder="Type your message..."
              disabled={sending || sessionOver || achieved || turnsRemaining <= 0}
-             className="w-full pl-5 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-full focus:bg-white focus:ring-2 focus:ring-orange-100 focus:border-orange-400 outline-none transition-all"
+             className="w-full pl-5 pr-12 py-3 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-full focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900/30 focus:border-orange-400 dark:focus:border-orange-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
              autoFocus
            />
            <button 
              type="submit"
              disabled={!inputMessage.trim() || sending || sessionOver || achieved || turnsRemaining <= 0}
-             className="absolute right-2 p-2 bg-orange-500 rounded-full text-white shadow-md hover:bg-orange-600 disabled:bg-slate-300 disabled:shadow-none transition-all active:scale-95"
+             className="absolute right-2 p-2 bg-orange-500 dark:bg-orange-600 rounded-full text-white shadow-md hover:bg-orange-600 dark:hover:bg-orange-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:shadow-none transition-all active:scale-95"
            >
              <PaperAirplaneIcon className="w-5 h-5" />
            </button>
@@ -535,14 +535,14 @@ export default function Roleplay() {
       {/* End-of-game Overlay */}
       <AnimatePresence>
         {(achieved || turnsRemaining <= 0 || sessionOver) && !showBriefing && (
-          <div className="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm dark:bg-black/70">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden"
+              className="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden transition-colors duration-300"
             >
-              <div className={`p-6 text-white ${achieved ? 'bg-emerald-500' : 'bg-slate-800'}`}>
+              <div className={`p-6 text-white ${achieved ? 'bg-emerald-500 dark:bg-emerald-600' : 'bg-slate-800 dark:bg-slate-700'}`}>
                 <div className="flex items-center gap-2 font-bold">
                   <TrophyIcon className="w-6 h-6" />
                   {achieved ? 'Mission Complete' : 'Mission Ended'}
@@ -555,12 +555,12 @@ export default function Roleplay() {
               </div>
 
               <div className="p-6 space-y-4">
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                <div className="bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600 rounded-2xl p-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-slate-700">Final Progress</span>
-                    <span className="font-bold text-slate-800">{Math.max(0, Math.min(100, goalProgress))}%</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">Final Progress</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-100">{Math.max(0, Math.min(100, goalProgress))}%</span>
                   </div>
-                  <div className="h-2 bg-slate-200 rounded-full overflow-hidden mt-2">
+                  <div className="h-2 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden mt-2">
                     <div
                       className={`h-2 ${achieved ? 'bg-emerald-500' : 'bg-orange-500'}`}
                       style={{ width: `${Math.max(0, Math.min(100, goalProgress))}%` }}
@@ -571,13 +571,13 @@ export default function Roleplay() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleReplay}
-                    className="btn-primary bg-slate-800 hover:bg-slate-700"
+                    className="btn-primary bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600"
                   >
                     Try Again
                   </button>
                   <button
                     onClick={handleEndRoleplay}
-                    className="btn-primary bg-white text-slate-800 border border-slate-200 hover:bg-slate-50"
+                    className="btn-primary bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
                   >
                     Finish
                   </button>
@@ -591,14 +591,14 @@ export default function Roleplay() {
       {/* Coach Modal */}
       <AnimatePresence>
         {showCoachModal && coachFeedback && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm dark:bg-black/70">
              <motion.div 
                initial={{ opacity: 0, scale: 0.9 }}
                animate={{ opacity: 1, scale: 1 }}
                exit={{ opacity: 0, scale: 0.9 }}
-               className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl"
+               className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl transition-colors duration-300"
              >
-               <div className="bg-blue-500 p-4 flex items-center justify-between text-white">
+               <div className="bg-blue-500 dark:bg-blue-600 p-4 flex items-center justify-between text-white">
                  <div className="flex items-center gap-2 font-bold">
                    <SparklesIcon className="w-5 h-5" />
                    AI Coach Breakdown
@@ -609,14 +609,14 @@ export default function Roleplay() {
                <div className="p-6 space-y-4">
                  {typeof coachFeedback.politeness_score === 'number' && (
                    <div className="space-y-2">
-                     <p className="text-xs font-bold uppercase text-slate-400 tracking-wider">Politeness</p>
+                     <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Politeness</p>
                      <div className="flex items-center justify-between text-sm">
-                       <span className="text-slate-700 font-medium">Score</span>
-                       <span className="text-slate-700 font-bold">{coachFeedback.politeness_score}%</span>
+                       <span className="text-slate-700 dark:text-slate-300 font-medium">Score</span>
+                       <span className="text-slate-700 dark:text-slate-300 font-bold">{coachFeedback.politeness_score}%</span>
                      </div>
-                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                     <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                        <div
-                         className="h-2 bg-blue-500"
+                         className="h-2 bg-blue-500 dark:bg-blue-400"
                          style={{ width: `${coachFeedback.politeness_score}%` }}
                        />
                      </div>
@@ -625,10 +625,10 @@ export default function Roleplay() {
 
                  {!!coachFeedback.grammar_notes?.length && (
                    <div className="space-y-2">
-                     <p className="text-xs font-bold uppercase text-slate-400 tracking-wider">Grammar Notes</p>
+                     <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Grammar Notes</p>
                      <div className="space-y-2">
                        {coachFeedback.grammar_notes.map((note, idx) => (
-                         <div key={idx} className="text-sm text-slate-700 bg-slate-50 border border-slate-100 rounded-xl p-3">
+                         <div key={idx} className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600 rounded-xl p-3">
                            {note}
                          </div>
                        ))}
@@ -638,10 +638,10 @@ export default function Roleplay() {
 
                  {!!coachFeedback.vocab_suggestions?.length && (
                    <div className="space-y-2">
-                     <p className="text-xs font-bold uppercase text-slate-400 tracking-wider">Vocabulary Tips</p>
+                     <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Vocabulary Tips</p>
                      <div className="space-y-2">
                        {coachFeedback.vocab_suggestions.map((tip, idx) => (
-                         <div key={idx} className="text-sm text-slate-700 bg-slate-50 border border-slate-100 rounded-xl p-3">
+                         <div key={idx} className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600 rounded-xl p-3">
                            {tip}
                          </div>
                        ))}
@@ -650,13 +650,13 @@ export default function Roleplay() {
                  )}
 
                  {!!coachFeedback.encouragement && (
-                   <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                     <p className="text-xs font-bold uppercase text-green-600 tracking-wider mb-1">Encouragement</p>
-                     <p className="text-green-800 font-medium">{coachFeedback.encouragement}</p>
+                   <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-100 dark:border-green-800">
+                     <p className="text-xs font-bold uppercase text-green-600 dark:text-green-400 tracking-wider mb-1">Encouragement</p>
+                     <p className="text-green-800 dark:text-green-200 font-medium">{coachFeedback.encouragement}</p>
                    </div>
                  )}
                  
-                 <button onClick={handleResumeAfterCoach} className="w-full btn-primary bg-blue-600 hover:bg-blue-700 shadow-blue-200">
+                 <button onClick={handleResumeAfterCoach} className="w-full btn-primary bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 shadow-blue-200 dark:shadow-none">
                    Got it, continue!
                  </button>
                </div>

@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dark Mode Explained (This Project vs Industry)</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --panel: rgba(255, 255, 255, 0.06);
+        --text: #e6edf6;
+        --muted: rgba(230, 237, 246, 0.72);
+        --accent: #f97316;
+        --accent2: #60a5fa;
+        --border: rgba(255, 255, 255, 0.12);
+        --code: rgba(0, 0, 0, 0.35);
+      }
+
+      /* This HTML is a doc, not the app UI. */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: radial-gradient(800px 500px at 15% 10%, rgba(249, 115, 22, 0.18), transparent 65%),
+          radial-gradient(800px 500px at 85% 15%, rgba(96, 165, 250, 0.16), transparent 55%),
+          var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          "Apple Color Emoji", "Segoe UI Emoji";
+        line-height: 1.55;
+      }
+
+      a {
+        color: var(--accent2);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 18px 64px;
+      }
+
+      .hero {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+        border-radius: 18px;
+        padding: 18px 18px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 26px;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin: 22px 0 10px;
+        font-size: 18px;
+        letter-spacing: -0.01em;
+      }
+
+      p {
+        margin: 10px 0;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      @media (min-width: 920px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 14px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.18);
+        font-size: 12px;
+        color: rgba(230, 237, 246, 0.82);
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+        font-size: 12px;
+      }
+
+      pre {
+        margin: 10px 0;
+        padding: 12px;
+        background: var(--code);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: auto;
+      }
+
+      .k {
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .note {
+        border-left: 3px solid var(--accent);
+        padding: 10px 12px;
+        background: rgba(249, 115, 22, 0.10);
+        border-radius: 10px;
+        margin: 10px 0;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .svgbox {
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.18);
+        border-radius: 16px;
+        padding: 12px;
+        overflow: auto;
+      }
+
+      .toc {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .toc a {
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(230, 237, 246, 0.82);
+        font-size: 12px;
+      }
+
+      .toc a:hover {
+        border-color: rgba(96, 165, 250, 0.6);
+        text-decoration: none;
+      }
+
+      /* Mermaid styling */
+      .mermaid {
+        background: rgba(0, 0, 0, 0.18);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 10px;
+        overflow: auto;
+      }
+
+      .footer {
+        margin-top: 28px;
+        color: rgba(230, 237, 246, 0.62);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="hero">
+        <div class="pill">Tailwind • class-based dark mode • localStorage</div>
+        <h1>How Dark Mode Works Here (and in Industry)</h1>
+        <p>
+          This document explains how dark mode is implemented in this repo’s frontend, why you saw
+          “dark flash then back to light”, and what an industry-standard approach typically adds.
+        </p>
+        <div class="toc">
+          <a href="#project">This project</a>
+          <a href="#flow">Flow</a>
+          <a href="#industry">Industry patterns</a>
+          <a href="#diff">Key differences</a>
+          <a href="#checklist">Checklist</a>
+        </div>
+      </div>
+
+      <h2 id="project">1) How dark mode works in this project</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="pill">Tailwind config</div>
+          <p>
+            Tailwind is configured with <span class="k">darkMode: 'class'</span>. That means dark
+            styles only activate when a parent element (typically <span class="k">&lt;html&gt;</span>)
+            has a <span class="k">dark</span> class.
+          </p>
+          <pre><code>// frontend/tailwind.config.js
+export default {
+  darkMode: 'class',
+  // ...
+}
+</code></pre>
+          <p>
+            In the built CSS, Tailwind generates selectors like:
+            <span class="k">:is(.dark body){...}</span> and
+            <span class="k">:is(.dark .btn-secondary){...}</span>.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="pill">Theme source of truth</div>
+          <p>
+            The “theme state” is persisted in <span class="k">localStorage</span> under
+            <span class="k">theme</span> (values: <span class="k">'dark'</span> or
+            <span class="k">'light'</span>), and the UI toggles the <span class="k">dark</span>
+            class on <span class="k">document.documentElement</span>.
+          </p>
+          <pre><code>// frontend/src/components/ThemeToggle.tsx (simplified)
+if (isDark) {
+  document.documentElement.classList.add('dark');
+  localStorage.setItem('theme', 'dark');
+  document.documentElement.style.colorScheme = 'dark';
+} else {
+  document.documentElement.classList.remove('dark');
+  localStorage.setItem('theme', 'light');
+  document.documentElement.style.colorScheme = 'light';
+}
+</code></pre>
+          <p>
+            <span class="k">color-scheme</span> is important for native UI (scrollbars/form controls)
+            to match the theme.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="pill">No-flash initialization</div>
+          <p>
+            To avoid “light page loads then turns dark” (FOUC), this repo applies the theme
+            <em>before React mounts</em> via a small script in
+            <span class="k">frontend/index.html</span>.
+          </p>
+          <pre><code>&lt;script&gt;
+(function () {
+  const stored = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const shouldDark = stored === 'dark' || (stored === null &amp;&amp; prefersDark);
+  document.documentElement.classList.toggle('dark', shouldDark);
+  document.documentElement.style.colorScheme = shouldDark ? 'dark' : 'light';
+})();
+&lt;/script&gt;
+</code></pre>
+          <p>
+            Then <span class="k">ThemeToggle</span> initializes from the existing
+            <span class="k">&lt;html class="dark"&gt;</span> state to prevent it from “undoing” the
+            initial theme.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="pill">Where dark styles live</div>
+          <p>
+            Dark styling is a mix of:
+          </p>
+          <p>
+            • Tailwind utility classes on components/pages (e.g. <span class="k">dark:bg-slate-900</span>)
+            <br />
+            • shared component classes in <span class="k">frontend/src/index.css</span> using
+            <span class="k">@apply</span> with <span class="k">dark:</span> variants.
+          </p>
+          <pre><code>@layer base {
+  body {
+    @apply bg-orange-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100;
+  }
+}
+</code></pre>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>Why you previously saw “dark flash then back to light”:</strong> the HTML script
+        applied dark, but React-mounted code computed a different initial theme and removed the
+        <span class="k">dark</span> class. Fixing the initial state to follow the DOM resolves this.
+      </div>
+
+      <h2 id="flow">2) End-to-end flow diagram</h2>
+
+      <div class="svgbox" aria-label="Inline SVG flow chart">
+        <svg width="920" height="270" viewBox="0 0 920 270" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1">
+              <stop offset="0" stop-color="#f97316" stop-opacity="0.35" />
+              <stop offset="1" stop-color="#60a5fa" stop-opacity="0.25" />
+            </linearGradient>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.35" />
+            </filter>
+          </defs>
+
+          <rect x="10" y="10" width="900" height="250" rx="18" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" />
+
+          <g filter="url(#shadow)">
+            <rect x="34" y="46" width="250" height="72" rx="14" fill="url(#g)" stroke="rgba(255,255,255,0.18)" />
+            <text x="52" y="76" font-size="14" fill="#e6edf6" font-family="ui-sans-serif,system-ui">index.html boot script</text>
+            <text x="52" y="98" font-size="12" fill="rgba(230,237,246,0.78)" font-family="ui-sans-serif,system-ui">reads localStorage / prefers-dark</text>
+          </g>
+
+          <g filter="url(#shadow)">
+            <rect x="335" y="46" width="250" height="72" rx="14" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.18)" />
+            <text x="353" y="76" font-size="14" fill="#e6edf6" font-family="ui-sans-serif,system-ui">&lt;html class=&quot;dark&quot;&gt;</text>
+            <text x="353" y="98" font-size="12" fill="rgba(230,237,246,0.78)" font-family="ui-sans-serif,system-ui">dark class toggles Tailwind variants</text>
+          </g>
+
+          <g filter="url(#shadow)">
+            <rect x="636" y="46" width="250" height="72" rx="14" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.18)" />
+            <text x="654" y="76" font-size="14" fill="#e6edf6" font-family="ui-sans-serif,system-ui">ThemeToggle mounts</text>
+            <text x="654" y="98" font-size="12" fill="rgba(230,237,246,0.78)" font-family="ui-sans-serif,system-ui">initial state reads DOM class</text>
+          </g>
+
+          <path d="M284 82 H335" stroke="rgba(255,255,255,0.35)" stroke-width="2" />
+          <path d="M585 82 H636" stroke="rgba(255,255,255,0.35)" stroke-width="2" />
+
+          <g filter="url(#shadow)">
+            <rect x="210" y="156" width="500" height="84" rx="14" fill="rgba(0,0,0,0.18)" stroke="rgba(255,255,255,0.14)" />
+            <text x="230" y="184" font-size="14" fill="#e6edf6" font-family="ui-sans-serif,system-ui">User clicks toggle</text>
+            <text x="230" y="206" font-size="12" fill="rgba(230,237,246,0.78)" font-family="ui-sans-serif,system-ui">setState → effect updates html.classList + localStorage + color-scheme</text>
+            <text x="230" y="228" font-size="12" fill="rgba(230,237,246,0.78)" font-family="ui-sans-serif,system-ui">Tailwind dark:* styles apply across the app</text>
+          </g>
+
+          <path d="M761 118 V156" stroke="rgba(255,255,255,0.35)" stroke-width="2" />
+          <path d="M761 156 H710" stroke="rgba(255,255,255,0.35)" stroke-width="2" />
+        </svg>
+      </div>
+
+      <h2>Mermaid version (optional)</h2>
+      <p>
+        Mermaid diagrams render if you open this file with internet access (it loads Mermaid from a
+        CDN). The SVG above works offline.
+      </p>
+      <div class="mermaid">
+flowchart LR
+  A["index.html boot script\n(read localStorage + prefers-color-scheme)"] --> B["Set &lt;html&gt;.classList('dark')\n+ style.colorScheme"]
+  B --> C["Tailwind dark: variants become active"]
+  C --> D["React mounts ThemeToggle"]
+  D --> E["ThemeToggle init reads DOM class\n(no flash / no revert)"]
+  E --> F["User clicks toggle\nupdates html class + localStorage"]
+</div>
+
+      <h2 id="industry">3) How industry typically implements dark mode</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="pill">Common goals</div>
+          <p>
+            In production apps, dark mode is usually treated as a first-class “theme system”, not
+            just a toggle:
+          </p>
+          <p>
+            • No flash (FOUC) on initial load
+            <br />
+            • Persisted preference (per user, often via cookie/server)
+            <br />
+            • Uses OS preference by default (prefers-color-scheme)
+            <br />
+            • Accessible contrast + consistent tokens
+            <br />
+            • Works in SSR/hydration (Next.js/Remix) without mismatches
+            <br />
+            • Optional: sync across tabs (storage events)
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="pill">Two mainstream approaches</div>
+          <p>
+            <strong>A) Class-based</strong> (like this repo): put a class on
+            <span class="k">&lt;html&gt;</span> and use either Tailwind dark variants or CSS selectors.
+          </p>
+          <p>
+            <strong>B) CSS variables (design tokens)</strong>: set theme variables on
+            <span class="k">:root</span> or a theme container. UI uses
+            <span class="k">var(--color-bg)</span>, <span class="k">var(--color-text)</span>, etc.
+          </p>
+          <pre><code>/* Token-based */
+:root { --bg: white; --text: black; }
+:root[data-theme="dark"] { --bg: #0b1220; --text: #e6edf6; }
+
+body { background: var(--bg); color: var(--text); }
+</code></pre>
+          <p>
+            Token-based theming scales better as the app grows because you update tokens, not every
+            component.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="pill">SSR / server preferences</div>
+          <p>
+            For SSR apps, industry often stores theme preference in a cookie and applies the theme
+            class/attribute in server-rendered HTML so the first paint is correct.
+          </p>
+          <pre><code>&lt;html data-theme="dark"&gt;...server-rendered...&lt;/html&gt;
+</code></pre>
+          <p>
+            Client-side code then reads the attribute and uses it as the initial state (same idea as
+            we do here with the <span class="k">dark</span> class).
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="pill">Sync & observability</div>
+          <p>
+            Larger apps commonly add:
+          </p>
+          <p>
+            • cross-tab sync: listen to <span class="k">window.addEventListener('storage', ...)</span>
+            <br />
+            • analytics: theme adoption rates
+            <br />
+            • testing: visual regression across themes
+          </p>
+        </div>
+      </div>
+
+      <h2 id="diff">4) Differences: this project vs industry standard</h2>
+      <div class="card">
+        <p>
+          <strong>What’s already pretty good here:</strong>
+        </p>
+        <p>
+          • Uses <span class="k">darkMode: 'class'</span> (predictable)
+          <br />
+          • Applies theme before React mounts (prevents FOUC)
+          <br />
+          • Sets <span class="k">color-scheme</span> (better native widgets)
+        </p>
+
+        <p>
+          <strong>Main gaps vs many mature apps:</strong>
+        </p>
+        <p>
+          • No unified token system yet (many components still use explicit colors)
+          <br />
+          • No cross-tab sync (optional)
+          <br />
+          • No user profile persistence (server-side) (optional)
+          <br />
+          • No explicit “system” theme mode (light/dark/system) (optional)
+        </p>
+      </div>
+
+      <h2 id="checklist">5) Practical checklist (for this repo)</h2>
+      <div class="grid">
+        <div class="card">
+          <div class="pill">If dark mode “does nothing”</div>
+          <p>
+            1) Confirm <span class="k">&lt;html&gt;</span> gets the <span class="k">dark</span> class.
+            In DevTools Console:
+          </p>
+          <pre><code>document.documentElement.classList.contains('dark')
+</code></pre>
+          <p>
+            2) Confirm Tailwind builds dark selectors (search built CSS for
+            <span class="k">.dark</span>).
+          </p>
+          <p>
+            3) Ensure components actually include <span class="k">dark:</span> variants (or rely on
+            token variables).
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="pill">If you see a flash or reverts</div>
+          <p>
+            1) Apply theme before React mounts (this repo does).
+          </p>
+          <p>
+            2) Make React theme state initialize from the already-applied DOM class/attribute.
+          </p>
+          <p>
+            3) Avoid multiple “sources of truth” fighting (DOM vs localStorage vs system) without a
+            clear priority order.
+          </p>
+        </div>
+      </div>
+
+      <div class="footer">
+        Tip: open this file directly in a browser: <span class="k">docs/dark-mode-explainer.html</span>
+      </div>
+    </div>
+
+    <!-- Mermaid (optional). The SVG above is the offline fallback. -->
+    <script type="module">
+      try {
+        const { default: mermaid } = await import(
+          'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+        );
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+      } catch (e) {
+        // If offline, Mermaid simply won't render.
+      }
+    </script>
+  </body>
+</html>

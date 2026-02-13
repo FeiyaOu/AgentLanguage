@@ -3,36 +3,43 @@
 @tailwind utilities;
 
 @layer base {
+  html.theme-switching *,
+  html.theme-switching *::before,
+  html.theme-switching *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+
   body {
-    @apply bg-orange-50 text-slate-800 antialiased min-h-screen relative overflow-x-hidden;
+    @apply bg-orange-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 antialiased min-h-screen relative overflow-x-hidden transition-colors duration-300;
   }
   
   /* Soft background blobs */
   body::before {
     content: "";
-    @apply absolute top-0 -left-40 w-96 h-96 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob pointer-events-none;
+    @apply absolute top-0 -left-40 w-96 h-96 bg-orange-300 dark:bg-orange-900/30 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-30 dark:opacity-20 animate-blob pointer-events-none;
   }
   body::after {
     content: "";
-    @apply absolute top-0 -right-40 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 pointer-events-none;
+    @apply absolute top-0 -right-40 w-96 h-96 bg-yellow-300 dark:bg-amber-900/30 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-30 dark:opacity-20 animate-blob animation-delay-2000 pointer-events-none;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.23)] hover:-translate-y-0.5 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-orange-600 hover:bg-orange-700 dark:bg-orange-600 dark:hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.23)] hover:-translate-y-0.5 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-slate-700 font-medium py-3 px-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95;
+    @apply bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium py-3 px-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95;
   }
   
   .card {
-    @apply bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl ring-1 ring-black/5;
+    @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/5 transition-colors duration-300;
   }
   
   .input-field {
-    @apply w-full px-4 py-3 rounded-lg border border-slate-200 bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all duration-200 placeholder:text-slate-400;
+    @apply w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500;
   }
 }
 
@@ -67,3 +74,11 @@
   0% { transform: translateX(-150%) skewX(-12deg); }
   50%, 100% { transform: translateX(150%) skewX(-12deg); }
 }
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600;
+}
+

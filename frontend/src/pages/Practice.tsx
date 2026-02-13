@@ -146,13 +146,8 @@ export default function Practice() {
             <SparklesIcon className="w-12 h-12 text-orange-500" />
           </motion.div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Analyzing Topic...</h2>
-            <p className="text-slate-500">Generating tailored questions for <span className="font-semibold text-orange-600">{topic}</span></p>
-          </div>
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-4 bg-slate-200 rounded animate-pulse" style={{ width: `${80 - i * 10}%`, margin: '0 auto' }}></div>
-            ))}
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">Analyzing Topic...</h2>
+            <p className="text-slate-500 dark:text-slate-400">Generating tailored questions for <span className="font-semibold text-orange-600 dark:text-orange-400">{topic}</span></p>
           </div>
         </div>
       </div>
@@ -271,7 +266,7 @@ export default function Practice() {
       >
         <button
           onClick={() => navigate('/')}
-          className="group flex items-center text-slate-500 hover:text-orange-600 font-medium mb-6 transition-colors"
+          className="group flex items-center text-slate-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 font-medium mb-6 transition-colors"
         >
           <ArrowLeftIcon className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
           Back to Dashboard
@@ -295,9 +290,9 @@ export default function Practice() {
             </h1>
           </div>
           <div className="text-right">
-             <div className="text-slate-500 text-sm font-medium">Progress</div>
+             <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">Progress</div>
              <div className="flex items-center gap-1">
-               <span className="text-xl font-bold text-slate-900">{answers.filter(a => a.trim()).length}</span>
+               <span className="text-xl font-bold text-slate-900 dark:text-slate-100">{answers.filter(a => a.trim()).length}</span>
                <span className="text-slate-400">/</span>
                <span className="text-xl text-slate-400">{exercises.length}</span>
              </div>
@@ -317,15 +312,15 @@ export default function Practice() {
             <motion.div 
               key={index} 
               variants={itemVariants}
-              className="bg-white rounded-2xl p-6 md:p-8 shadow-lg ring-1 ring-slate-100 relative overflow-hidden group hover:ring-orange-200 transition-all"
+              className="bg-white dark:bg-slate-800 rounded-2xl p-6 md:p-8 shadow-lg ring-1 ring-slate-100 dark:ring-white/5 relative overflow-hidden group hover:ring-orange-200 dark:hover:ring-orange-500/30 transition-all"
             >
               {/* Decorative Number */}
               <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <span className="text-9xl font-black text-slate-900 leading-none -mr-4 -mt-4 block">{index + 1}</span>
+                <span className="text-9xl font-black text-slate-900 dark:text-slate-100 leading-none -mr-4 -mt-4 block">{index + 1}</span>
               </div>
 
               <div className="relative z-10">
-                <h3 className="text-lg md:text-xl font-semibold text-slate-800 mb-6 leading-relaxed pr-8">
+                <h3 className="text-lg md:text-xl font-semibold text-slate-800 dark:text-slate-100 mb-6 leading-relaxed pr-8">
                   <span className="text-orange-500 mr-2">{index + 1}.</span>
                   {exercise.question}
                 </h3>
@@ -338,8 +333,8 @@ export default function Practice() {
                         key={optionIndex}
                         className={`cursor-pointer relative overflow-hidden p-4 rounded-xl border-2 transition-all duration-200
                           ${answers[index] === option
-                            ? 'border-orange-500 bg-orange-50 text-orange-900 shadow-md'
-                            : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-orange-200 hover:bg-white'
+                            ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-100 shadow-md'
+                            : 'border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:border-orange-200 dark:hover:border-orange-500/40 hover:bg-white dark:hover:bg-slate-800'
                           }`}
                       >
                         <input
@@ -361,18 +356,18 @@ export default function Practice() {
                   </div>
                 ) : exercise.type === 'sentence_reordering' ? (
                   <div className="space-y-4">
-                    <div className="rounded-xl border-2 border-slate-100 bg-slate-50 p-4">
-                      <div className="text-xs font-semibold text-slate-500 mb-3">Your sentence (tap to remove)</div>
+                    <div className="rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
+                      <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Your sentence (tap to remove)</div>
                       <div className="flex flex-wrap gap-2 min-h-[44px]">
                         {(reorderBoards[index]?.selected ?? []).length === 0 ? (
-                          <span className="text-sm text-slate-400">Tap words below to build the sentence.</span>
+                          <span className="text-sm text-slate-400 dark:text-slate-500">Tap words below to build the sentence.</span>
                         ) : (
                           (reorderBoards[index]?.selected ?? []).map((token, tokenIndex) => (
                             <button
                               key={`${token}-${tokenIndex}`}
                               type="button"
                               onClick={() => handleReorderUnpick(index, tokenIndex)}
-                              className="px-3 py-2 rounded-full bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:border-orange-200 hover:text-orange-700 transition-colors"
+                              className="px-3 py-2 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium hover:border-orange-200 dark:hover:border-orange-500/40 hover:text-orange-700 dark:hover:text-orange-300 transition-colors"
                             >
                               {token}
                             </button>
@@ -381,15 +376,15 @@ export default function Practice() {
                       </div>
                     </div>
 
-                    <div className="rounded-xl border-2 border-slate-100 bg-white p-4">
-                      <div className="text-xs font-semibold text-slate-500 mb-3">Word bank (tap to add)</div>
+                    <div className="rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+                      <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Word bank (tap to add)</div>
                       <div className="flex flex-wrap gap-2">
                         {(reorderBoards[index]?.available ?? []).map((token, tokenIndex) => (
                           <button
                             key={`${token}-${tokenIndex}`}
                             type="button"
                             onClick={() => handleReorderPick(index, tokenIndex)}
-                            className="px-3 py-2 rounded-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium hover:border-orange-200 hover:bg-orange-50 transition-colors"
+                            className="px-3 py-2 rounded-full bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium hover:border-orange-200 dark:hover:border-orange-500/40 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
                           >
                             {token}
                           </button>
@@ -414,7 +409,7 @@ export default function Practice() {
           transition={{ delay: 0.5 }}
           className="sticky bottom-6 mt-12 z-20"
         >
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-xl -m-6 rounded-t-3xl border-t border-white/50 -z-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]"></div>
+          <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl -m-6 rounded-t-3xl border-t border-white/50 dark:border-slate-800/60 -z-10 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]"></div>
           <div className="flex justify-center">
             <button
               type="submit"
