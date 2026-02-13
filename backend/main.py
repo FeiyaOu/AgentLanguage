@@ -85,6 +85,22 @@ class AskTutorResponse(BaseModel):
     answer: str
 
 
+class SuggestPersonasRequest(BaseModel):
+    scenario: str
+    difficulty: str = "beginner"
+
+
+class SuggestedPersona(BaseModel):
+    id: str
+    emoji: str
+    name: str
+    traits: str
+
+
+class SuggestPersonasResponse(BaseModel):
+    personas: List[SuggestedPersona]
+
+
 class StartRoleplayRequest(BaseModel):
     topic: str
     difficulty: str = "beginner"
@@ -317,6 +333,63 @@ def reset_session():
 
 # Roleplay session storage (in-memory for simplicity)
 roleplay_sessions: Dict[str, Dict[str, Any]] = {}
+
+
+@app.post("/api/suggest-personas", response_model=SuggestPersonasResponse)
+def suggest_personas(request: SuggestPersonasRequest):
+    """Suggest 3-4 contextually appropriate personas for a given scenario."""
+    try:
+        prompt = f"""Given this English-learning roleplay scenario: "{request.scenario}"
+Difficulty level: {request.difficulty}
+
+Generate exactly 4 conversation-partner personas that would naturally appear in this scenario.
+Each persona should have a distinct personality that creates a different conversational challenge.
+
+Return ONLY a JSON array with this structure:
+[
+  {{
+    "id": "unique_snake_case_id",
+    "emoji": "a single emoji that represents this character",
+    "name": "Character Name (e.g. Marco the Waiter)",
+    "traits": "Brief personality description, 8-15 words"
+  }}
+]
+
+Rules:
+- Every persona MUST make sense for the scenario "{request.scenario}"
+- Vary the difficulty: one easy/friendly, one moderate, one challenging
+- Use creative but realistic character names
+- The 4th persona can be more unusual or humorous
+- traits should hint at how they'll behave in conversation"""
+
+        response = agent.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.8,
+        )
+
+        raw = response.choices[0].message.content
+        personas = agent._extract_json(raw)
+
+        if not isinstance(personas, list) or len(personas) == 0:
+            raise HTTPException(status_code=500, detail="Failed to generate personas")
+
+        # Ensure each persona has required fields
+        result = []
+        for p in personas[:4]:
+            result.append(SuggestedPersona(
+                id=str(p.get("id", "persona")),
+                emoji=str(p.get("emoji", "🎭")),
+                name=str(p.get("name", "AI Character")),
+                traits=str(p.get("traits", "friendly and helpful")),
+            ))
+
+        return {"personas": result}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/start-roleplay", response_model=StartRoleplayResponse)

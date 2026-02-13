@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Language Learning Agent – Code Overview</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --orange-50: #fff7ed;
+      --orange-100: #ffedd5;
+      --orange-200: #fed7aa;
+      --orange-300: #fdba74;
+      --orange-400: #fb923c;
+      --orange-500: #f97316;
+      --orange-600: #ea580c;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --blue-50: #eff6ff;
+      --blue-500: #3b82f6;
+      --green-50: #f0fdf4;
+      --green-600: #16a34a;
+      --purple-50: #faf5ff;
+      --purple-600: #9333ea;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      line-height: 1.65;
+    }
+
+    /* ─── Navigation ─── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--gray-900);
+      color: #fff;
+      padding: 0 2rem;
+      display: flex; align-items: center; gap: 2rem;
+      height: 56px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    nav .logo { font-weight: 700; font-size: 1.1rem; white-space: nowrap; }
+    nav .logo span { color: var(--orange-400); }
+    nav a { color: #cbd5e1; text-decoration: none; font-size: .85rem; transition: color .15s; }
+    nav a:hover { color: #fff; }
+
+    /* ─── Hero ─── */
+    .hero {
+      background: linear-gradient(135deg, var(--orange-500), var(--orange-600));
+      color: #fff;
+      text-align: center;
+      padding: 4rem 2rem 3rem;
+    }
+    .hero h1 { font-size: 2.8rem; margin-bottom: .5rem; }
+    .hero p { font-size: 1.15rem; opacity: .9; max-width: 600px; margin: 0 auto; }
+
+    /* ─── Container ─── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+
+    /* ─── Section ─── */
+    section { margin-bottom: 3rem; }
+    section h2 {
+      font-size: 1.6rem; color: var(--gray-900);
+      border-bottom: 3px solid var(--orange-400);
+      padding-bottom: .4rem; margin-bottom: 1.2rem;
+    }
+    section h3 { font-size: 1.15rem; color: var(--orange-600); margin: 1.2rem 0 .5rem; }
+
+    /* ─── Cards ─── */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      margin-bottom: 1rem;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px,1fr)); gap: 1rem; }
+
+    /* ─── File badge ─── */
+    .file-badge {
+      display: inline-block;
+      background: var(--gray-200);
+      color: var(--gray-700);
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: .78rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-right: .3rem;
+    }
+
+    /* ─── Code blocks ─── */
+    pre {
+      background: var(--gray-900);
+      color: #e2e8f0;
+      padding: 1rem 1.2rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: .82rem;
+      line-height: 1.6;
+      margin: .8rem 0;
+    }
+    code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+    p code, li code {
+      background: var(--orange-100);
+      color: var(--orange-600);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: .88em;
+    }
+
+    /* ─── Mermaid ─── */
+    .mermaid-wrapper {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      margin: 1rem 0;
+      overflow-x: auto;
+    }
+    .mermaid { text-align: center; }
+
+    /* ─── Tables ─── */
+    table { width: 100%; border-collapse: collapse; margin: .8rem 0; font-size: .9rem; }
+    th { background: var(--orange-100); color: var(--orange-600); text-align: left; padding: .6rem .8rem; }
+    td { padding: .55rem .8rem; border-bottom: 1px solid var(--gray-200); }
+    tr:hover td { background: var(--orange-50); }
+
+    /* ─── SVG icons inline ─── */
+    .icon-row { display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1rem 0; }
+    .icon-item { display: flex; align-items: center; gap: .5rem; font-size: .9rem; }
+    .icon-item svg { flex-shrink: 0; }
+
+    /* ─── Misc ─── */
+    ul { padding-left: 1.4rem; }
+    li { margin-bottom: .3rem; }
+    .text-sm { font-size: .88rem; color: var(--gray-700); }
+    .tag {
+      display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: .75rem; font-weight: 600;
+    }
+    .tag-fe { background: #dbeafe; color: #1d4ed8; }
+    .tag-be { background: #dcfce7; color: #15803d; }
+    .tag-ai { background: #f3e8ff; color: #7c3aed; }
+
+    .toc { column-count: 2; column-gap: 2rem; }
+    .toc li { break-inside: avoid; margin-bottom: .4rem; }
+
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 2rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .toc { column-count: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav>
+  <div class="logo">📖 <span>Code</span> Overview</div>
+  <a href="#architecture">Architecture</a>
+  <a href="#frontend">Frontend</a>
+  <a href="#backend">Backend</a>
+  <a href="#agent">AI Agent</a>
+  <a href="#api">API</a>
+  <a href="#dataflow">Data Flow</a>
+  <a href="#files">Files</a>
+</nav>
+
+<!-- ══════════════ HERO ══════════════ -->
+<div class="hero">
+  <h1>AI Language Learning Agent</h1>
+  <p>A full-stack adaptive language learning app powered by a custom AI agent with GPT-4o-mini — no LangChain, just clean code.</p>
+</div>
+
+<div class="container">
+
+<!-- ══════════════ TABLE OF CONTENTS ══════════════ -->
+<section>
+  <h2>Table of Contents</h2>
+  <ul class="toc">
+    <li><a href="#architecture">High-Level Architecture</a></li>
+    <li><a href="#tech">Tech Stack</a></li>
+    <li><a href="#frontend">Frontend (React + Vite)</a></li>
+    <li><a href="#routing">Page Routing & Navigation</a></li>
+    <li><a href="#backend">Backend (FastAPI)</a></li>
+    <li><a href="#agent">Custom AI Agent</a></li>
+    <li><a href="#tools">Agent Tools</a></li>
+    <li><a href="#api">API Endpoints</a></li>
+    <li><a href="#dataflow">End-to-End Data Flows</a></li>
+    <li><a href="#roleplay-flow">Roleplay Feature Deep Dive</a></li>
+    <li><a href="#files">File Map</a></li>
+    <li><a href="#run">How to Run</a></li>
+  </ul>
+</section>
+
+<!-- ══════════════ ARCHITECTURE ══════════════ -->
+<section id="architecture">
+  <h2>High-Level Architecture</h2>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+graph LR
+  subgraph Browser["🌐 Browser (localhost:5173)"]
+    A[React + Vite + Tailwind]
+  end
+  subgraph Server["⚙️ Backend (localhost:8000)"]
+    B[FastAPI + Uvicorn]
+    C[Custom AI Agent]
+  end
+  subgraph OpenAI["☁️ OpenAI API"]
+    D[GPT-4o-mini]
+  end
+
+  A -- "HTTP (axios)" --> B
+  B -- "calls" --> C
+  C -- "OpenAI SDK" --> D
+  D -.reply.-> C
+  C -.result.-> B
+  B -.JSON.-> A
+    </div>
+  </div>
+  <p>The frontend is a single-page React app that talks to a Python FastAPI server. The server delegates to a hand-built AI agent that uses OpenAI's API through custom tool classes — <strong>no LangChain or similar frameworks</strong>.</p>
+</section>
+
+<!-- ══════════════ TECH ══════════════ -->
+<section id="tech">
+  <h2>Tech Stack</h2>
+  <div class="icon-row">
+    <div class="icon-item">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M14.31 8l5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94M9.69 16L3.95 6.06M14.31 16H2.83M16.62 12l-5.74 9.94"/></svg>
+      <span><strong>React 19</strong> + TypeScript</span>
+    </div>
+    <div class="icon-item">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <span><strong>Vite 7</strong> (dev server & bundler)</span>
+    </div>
+    <div class="icon-item">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><path d="M4 6h16M4 12h8M4 18h16"/></svg>
+      <span><strong>Tailwind CSS 3</strong></span>
+    </div>
+    <div class="icon-item">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 12h8M12 8v8"/></svg>
+      <span><strong>FastAPI</strong> + Uvicorn</span>
+    </div>
+    <div class="icon-item">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 6v6l4 2"/></svg>
+      <span><strong>OpenAI</strong> GPT-4o-mini</span>
+    </div>
+    <div class="icon-item">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <span><strong>axios</strong> (HTTP client)</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FRONTEND ══════════════ -->
+<section id="frontend">
+  <h2>Frontend – React Pages</h2>
+
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+graph TD
+  subgraph Pages
+    Home["🏠 Home.tsx<br/>Topic & Mode Selection"]
+    Practice["📝 Practice.tsx<br/>Answer Exercises"]
+    Feedback["📊 Feedback.tsx<br/>Scores & Recommendations"]
+    Roleplay["🎭 Roleplay.tsx<br/>Interactive Chat"]
+  end
+
+  Home -->|"Exercise mode<br/>POST /generate-practice"| Practice
+  Home -->|"Roleplay mode<br/>navigate with state"| Roleplay
+  Practice -->|"POST /score-answers"| Feedback
+  Feedback -->|"Practice Weak Areas<br/>POST /generate-practice"| Practice
+  Feedback -->|"New Topic"| Home
+  Roleplay -->|"End Session"| Home
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>🏠 Home.tsx <span class="tag tag-fe">Frontend</span></h3>
+      <p>Landing page with a form where the user picks:</p>
+      <ul>
+        <li><strong>Mode</strong> — Exercise or Roleplay</li>
+        <li><strong>Topic</strong> — e.g. "restaurant English"</li>
+        <li><strong>Difficulty</strong> — beginner / intermediate / advanced</li>
+        <li><strong>Persona</strong> (roleplay only) — friendly, grumpy waiter, lost tourist, strict teacher, or custom</li>
+      </ul>
+      <p class="text-sm">On submit it either calls <code>generatePractice()</code> API or navigates to <code>/roleplay</code> with state.</p>
+    </div>
+
+    <div class="card">
+      <h3>📝 Practice.tsx <span class="tag tag-fe">Frontend</span></h3>
+      <p>Renders exercises received via React Router state. Supports:</p>
+      <ul>
+        <li><strong>Multiple choice</strong> — radio button cards</li>
+        <li><strong>Fill-in-the-blank</strong> — text input</li>
+        <li><strong>Roleplay-style</strong> — text input</li>
+      </ul>
+      <p class="text-sm">Submits <code>scoreAnswers(exercises, answers)</code> then navigates to <code>/feedback</code>.</p>
+    </div>
+
+    <div class="card">
+      <h3>📊 Feedback.tsx <span class="tag tag-fe">Frontend</span></h3>
+      <p>Rich feedback page showing:</p>
+      <ul>
+        <li>Overall score percentage + emoji</li>
+        <li>Per-question breakdown (correct/incorrect, feedback, answers)</li>
+        <li>Weak areas tags</li>
+        <li>AI recommendations</li>
+        <li><strong>Ask AI Tutor</strong> modal per question</li>
+        <li><strong>Practice Weak Areas</strong> button → regenerates exercises focused on weaknesses</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🎭 Roleplay.tsx <span class="tag tag-fe">Frontend</span></h3>
+      <p>Two-phase interactive chat:</p>
+      <ol>
+        <li><strong>Briefing screen</strong> — shows scene, partner, mission, and pro tip</li>
+        <li><strong>Chat interface</strong> — alternating user/persona messages with a coach feedback modal every 3 turns</li>
+      </ol>
+      <p class="text-sm">Uses <code>startRoleplay()</code>, <code>sendRoleplayMessage()</code>, and <code>endRoleplay()</code> APIs.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ ROUTING ══════════════ -->
+<section id="routing">
+  <h2>Page Routing & Navigation</h2>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+stateDiagram-v2
+  [*] --> Home: /
+  Home --> Practice: /practice (exercises in state)
+  Home --> Roleplay: /roleplay (topic+persona in state)
+  Practice --> Feedback: /feedback (result in state)
+  Feedback --> Practice: Practice Weak Areas
+  Feedback --> Home: New Topic
+  Roleplay --> Home: End Session
+    </div>
+  </div>
+  <p>All page-to-page data is passed via <strong>React Router <code>location.state</code></strong> — there is no global store (Redux, Context, etc.). Each page guards itself: if the expected state is missing, it redirects back to <code>/</code>.</p>
+</section>
+
+<!-- ══════════════ BACKEND ══════════════ -->
+<section id="backend">
+  <h2>Backend – FastAPI Server</h2>
+  <div class="card">
+    <p><span class="file-badge">backend/main.py</span> <span class="tag tag-be">Backend</span></p>
+    <p>A single-file FastAPI application (~496 lines) that:</p>
+    <ul>
+      <li>Loads <code>OPENAI_API_KEY</code> from <code>.env</code></li>
+      <li>Configures CORS for Vite dev ports (5173-5175, 3000)</li>
+      <li>Instantiates a single <code>LanguageLearningAgent</code></li>
+      <li>Defines Pydantic request/response models</li>
+      <li>Exposes 7 REST endpoints (see <a href="#api">API</a> section)</li>
+      <li>Stores roleplay sessions in-memory (<code>roleplay_sessions</code> dict)</li>
+    </ul>
+    <h3>Scoring Logic (Hybrid)</h3>
+    <p>The <code>/api/score-answers</code> endpoint uses a <strong>hybrid approach</strong>:</p>
+    <ul>
+      <li><strong>Deterministic</strong> for <code>multiple_choice</code> and <code>fill_in_the_blank</code> — normalized string comparison</li>
+      <li><strong>AI-evaluated</strong> for open-ended types like <code>roleplay</code> — delegates to <code>ScoreAndAnalyzeTool</code></li>
+      <li>Both are merged into a unified <code>detailed_scores</code> response</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════ AGENT ══════════════ -->
+<section id="agent">
+  <h2>Custom AI Agent</h2>
+
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+flowchart TD
+  A["User Input"] --> B["Add to conversation_history"]
+  B --> C["Call GPT-4o-mini"]
+  C --> D{"Parse response"}
+  D -->|"Has TOOL:"| E["Execute tool"]
+  E --> F["Add TOOL_RESULT to history"]
+  F --> C
+  D -->|"Has RESPONSE:"| G["Return to user"]
+  D -->|"Max 5 iterations"| H["Safety exit"]
+    </div>
+  </div>
+
+  <div class="card">
+    <p><span class="file-badge">backend/agent/agent.py</span> <span class="tag tag-ai">AI Agent</span></p>
+    <h3>LanguageLearningAgent class</h3>
+    <p>This is the <strong>core reasoning loop</strong>. Key design decisions:</p>
+    <ul>
+      <li><strong>No framework dependencies</strong> — just <code>openai</code> SDK + regex parsing</li>
+      <li><strong>Structured output format</strong> — the LLM is instructed to output <code>THOUGHT:</code>, <code>TOOL:</code>, <code>TOOL_INPUT:</code>, or <code>RESPONSE:</code> blocks</li>
+      <li><strong>Tool dispatch</strong> — tools are registered in a dict; agent calls them by name</li>
+      <li><strong>Conversation memory</strong> — full chat history is maintained and passed to every LLM call</li>
+      <li><strong>Max 5 iterations</strong> — prevents infinite tool-calling loops</li>
+      <li><strong>Robust JSON extraction</strong> — handles fenced code blocks, searches for first <code>[</code>/<code>{</code></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <p><span class="file-badge">backend/agent/prompts.py</span> <span class="tag tag-ai">AI Agent</span></p>
+    <h3>System Prompt</h3>
+    <p>Defines the agent's personality and expected output format. Instructs the model to:</p>
+    <pre>THOUGHT: [reasoning]
+TOOL: [tool_name]
+TOOL_INPUT: {"topic": "...", "difficulty": "..."}
+
+— or —
+
+THOUGHT: [reasoning]
+RESPONSE: [message to user]</pre>
+  </div>
+</section>
+
+<!-- ══════════════ TOOLS ══════════════ -->
+<section id="tools">
+  <h2>Agent Tools</h2>
+  <p><span class="file-badge">backend/agent/tools.py</span> <span class="tag tag-ai">AI Agent</span> — 4 tool classes, all inheriting from <code>Tool</code> base class:</p>
+
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+classDiagram
+  class Tool {
+    +name: str
+    +description: str
+    +execute(**kwargs) str
+  }
+  class GeneratePracticeTool {
+    +execute(topic, focus_areas, difficulty) str
+  }
+  class ScoreAndAnalyzeTool {
+    +execute(exercises, answers) str
+  }
+  class RoleplayTool {
+    +execute(scenario, persona_type, difficulty, custom_description) str
+  }
+  class RoleplayResponseTool {
+    +execute(persona_type, persona_name, conversation_history, user_message, turn_count, scenario) str
+  }
+
+  Tool <|-- GeneratePracticeTool
+  Tool <|-- ScoreAndAnalyzeTool
+  Tool <|-- RoleplayTool
+  Tool <|-- RoleplayResponseTool
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Tool</th><th>Purpose</th><th>LLM Model</th><th>Temperature</th></tr>
+    <tr>
+      <td><code>generate_practice</code></td>
+      <td>Creates 5 exercises (multiple choice, fill blank, or roleplay)</td>
+      <td>gpt-4o-mini</td><td>0.7</td>
+    </tr>
+    <tr>
+      <td><code>score_and_analyze</code></td>
+      <td>Scores answers, finds weak areas, recommends next exercise type</td>
+      <td>gpt-4o-mini</td><td>0.5</td>
+    </tr>
+    <tr>
+      <td><code>start_roleplay</code></td>
+      <td>Generates an opening scene with a persona (4 built-in + custom)</td>
+      <td>gpt-4o-mini</td><td>0.8</td>
+    </tr>
+    <tr>
+      <td><code>roleplay_respond</code></td>
+      <td>In-character dialogue <em>or</em> coach feedback every 3 turns</td>
+      <td>gpt-4o-mini</td><td>0.7</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ══════════════ API ══════════════ -->
+<section id="api">
+  <h2>API Endpoints</h2>
+  <table>
+    <tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Used By</th></tr>
+    <tr><td>GET</td><td><code>/</code></td><td>Health check</td><td>—</td></tr>
+    <tr><td>POST</td><td><code>/api/generate-practice</code></td><td>Generate exercises for a topic</td><td>Home, Feedback</td></tr>
+    <tr><td>POST</td><td><code>/api/score-answers</code></td><td>Score user answers (hybrid deterministic + AI)</td><td>Practice</td></tr>
+    <tr><td>POST</td><td><code>/api/ask-tutor</code></td><td>Ask AI tutor a follow-up question</td><td>Feedback modal</td></tr>
+    <tr><td>POST</td><td><code>/api/reset</code></td><td>Reset agent session</td><td>—</td></tr>
+    <tr><td>POST</td><td><code>/api/start-roleplay</code></td><td>Start a new roleplay session</td><td>Roleplay</td></tr>
+    <tr><td>POST</td><td><code>/api/roleplay-message</code></td><td>Send message in roleplay (returns dialogue or coach feedback)</td><td>Roleplay</td></tr>
+    <tr><td>POST</td><td><code>/api/end-roleplay</code></td><td>End roleplay, get summary</td><td>Roleplay</td></tr>
+  </table>
+</section>
+
+<!-- ══════════════ DATA FLOW ══════════════ -->
+<section id="dataflow">
+  <h2>End-to-End Data Flows</h2>
+
+  <h3>Flow 1: Exercise Practice</h3>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+sequenceDiagram
+  participant U as 👤 User
+  participant FE as React Frontend
+  participant BE as FastAPI Backend
+  participant AG as AI Agent
+  participant LLM as GPT-4o-mini
+
+  U->>FE: Enter topic + difficulty, click "Start Learning"
+  FE->>BE: POST /api/generate-practice {topic, difficulty}
+  BE->>AG: agent.process_user_input(...)
+  AG->>LLM: Chat completion (system + user msgs)
+  LLM-->>AG: THOUGHT + TOOL: generate_practice
+  AG->>LLM: GeneratePracticeTool.execute(...)
+  LLM-->>AG: JSON array of 5 exercises
+  AG-->>BE: exercises stored in agent
+  BE-->>FE: {exercises: [...], message: "..."}
+  FE->>FE: Navigate to /practice with exercises
+
+  U->>FE: Answer all questions, click "Submit"
+  FE->>BE: POST /api/score-answers {exercises, answers}
+  BE->>LLM: ScoreAndAnalyzeTool (AI scoring)
+  LLM-->>BE: AI analysis JSON
+  BE->>BE: Merge deterministic + AI scores
+  BE-->>FE: {total_score, detailed_scores, weak_areas, ...}
+  FE->>FE: Navigate to /feedback with results
+    </div>
+  </div>
+
+  <h3>Flow 2: Roleplay Conversation</h3>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+sequenceDiagram
+  participant U as 👤 User
+  participant FE as React Frontend
+  participant BE as FastAPI Backend
+  participant LLM as GPT-4o-mini
+
+  U->>FE: Select roleplay mode, choose persona
+  FE->>FE: Navigate to /roleplay with config
+  FE->>BE: POST /api/start-roleplay {topic, persona_type, ...}
+  BE->>LLM: RoleplayTool.execute(...)
+  LLM-->>BE: {persona_name, opening_line, scene_context, user_goal}
+  BE-->>FE: Roleplay session created
+  FE->>FE: Show Briefing Screen
+
+  U->>FE: Click "Start Conversation"
+  FE->>FE: Show chat with persona's opening line
+
+  loop Every user message
+    U->>FE: Type message, send
+    FE->>BE: POST /api/roleplay-message {roleplay_id, user_message, turn_count}
+    alt turn_count % 3 == 0 (Coach turn)
+      BE->>LLM: Coach feedback prompt
+      LLM-->>BE: {politeness_score, grammar_notes, vocab_suggestions, ...}
+      BE-->>FE: type: "coach_feedback"
+      FE->>FE: Show Coach Modal
+    else Normal turn
+      BE->>LLM: In-character prompt
+      LLM-->>BE: {persona_response: "..."}
+      BE-->>FE: type: "dialogue"
+      FE->>FE: Add persona message to chat
+    end
+  end
+
+  U->>FE: Click "End Session"
+  FE->>BE: POST /api/end-roleplay {roleplay_id}
+  BE-->>FE: {final_message, total_turns}
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ ROLEPLAY DEEP DIVE ══════════════ -->
+<section id="roleplay-flow">
+  <h2>Roleplay Feature – Deep Dive</h2>
+  <div class="card">
+    <h3>Persona System</h3>
+    <p>4 built-in personas + 1 custom option:</p>
+
+    <!-- SVG persona cards -->
+    <svg width="100%" height="160" viewBox="0 0 700 150" xmlns="http://www.w3.org/2000/svg" style="margin:1rem 0">
+      <!-- Friendly -->
+      <rect x="5" y="10" width="130" height="130" rx="16" fill="#dcfce7" stroke="#86efac" stroke-width="2"/>
+      <text x="70" y="55" text-anchor="middle" font-size="30">😊</text>
+      <text x="70" y="80" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">Friendly Helper</text>
+      <text x="70" y="95" text-anchor="middle" font-size="9" fill="#15803d">warm, patient</text>
+      <text x="70" y="108" text-anchor="middle" font-size="9" fill="#15803d">encouraging</text>
+
+      <!-- Grumpy -->
+      <rect x="145" y="10" width="130" height="130" rx="16" fill="#fee2e2" stroke="#fca5a5" stroke-width="2"/>
+      <text x="210" y="55" text-anchor="middle" font-size="30">😠</text>
+      <text x="210" y="80" text-anchor="middle" font-size="11" font-weight="bold" fill="#991b1b">Grumpy Waiter</text>
+      <text x="210" y="95" text-anchor="middle" font-size="9" fill="#b91c1c">impatient, annoyed</text>
+      <text x="210" y="108" text-anchor="middle" font-size="9" fill="#b91c1c">secretly fair</text>
+
+      <!-- Lost Tourist -->
+      <rect x="285" y="10" width="130" height="130" rx="16" fill="#dbeafe" stroke="#93c5fd" stroke-width="2"/>
+      <text x="350" y="55" text-anchor="middle" font-size="30">😰</text>
+      <text x="350" y="80" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">Lost Tourist</text>
+      <text x="350" y="95" text-anchor="middle" font-size="9" fill="#1d4ed8">confused, anxious</text>
+      <text x="350" y="108" text-anchor="middle" font-size="9" fill="#1d4ed8">grateful for help</text>
+
+      <!-- Strict Teacher -->
+      <rect x="425" y="10" width="130" height="130" rx="16" fill="#f3e8ff" stroke="#c084fc" stroke-width="2"/>
+      <text x="490" y="55" text-anchor="middle" font-size="30">👩‍🏫</text>
+      <text x="490" y="80" text-anchor="middle" font-size="11" font-weight="bold" fill="#581c87">Strict Teacher</text>
+      <text x="490" y="95" text-anchor="middle" font-size="9" fill="#7c3aed">demanding, corrects</text>
+      <text x="490" y="108" text-anchor="middle" font-size="9" fill="#7c3aed">expects grammar</text>
+
+      <!-- Custom -->
+      <rect x="565" y="10" width="130" height="130" rx="16" fill="#fef3c7" stroke="#fcd34d" stroke-width="2"/>
+      <text x="630" y="55" text-anchor="middle" font-size="30">✍️</text>
+      <text x="630" y="80" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">Custom Partner</text>
+      <text x="630" y="95" text-anchor="middle" font-size="9" fill="#b45309">user-defined</text>
+      <text x="630" y="108" text-anchor="middle" font-size="9" fill="#b45309">personality</text>
+    </svg>
+
+    <h3>Coach Feedback System</h3>
+    <p>Every <strong>3rd user turn</strong> (<code>turn_count % 3 == 0</code>), instead of a persona reply, the system generates a coach analysis:</p>
+    <ul>
+      <li><strong>Politeness Score</strong> (0-100) — how appropriate the language is</li>
+      <li><strong>Grammar Notes</strong> — specific corrections with examples</li>
+      <li><strong>Vocabulary Suggestions</strong> — better word choices / useful phrases</li>
+      <li><strong>Encouragement</strong> — positive feedback</li>
+      <li><strong>Persona Resume</strong> — the character continues the conversation naturally after feedback</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════ FILES ══════════════ -->
+<section id="files">
+  <h2>File Map</h2>
+
+  <!-- SVG file tree -->
+  <svg width="100%" height="520" viewBox="0 0 600 510" xmlns="http://www.w3.org/2000/svg" style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px;">
+    <!-- background -->
+    <rect width="600" height="510" rx="12" fill="#1e293b"/>
+
+    <!-- Root -->
+    <text x="20" y="30" fill="#fbbf24" font-weight="bold">Agent-LanguageAssistant/</text>
+
+    <!-- Backend -->
+    <text x="30" y="55" fill="#86efac">├── backend/</text>
+    <text x="60" y="75" fill="#e2e8f0">├── main.py</text>
+    <text x="230" y="75" fill="#94a3b8">← FastAPI server, 7 endpoints, Pydantic models</text>
+    <text x="60" y="95" fill="#e2e8f0">├── requirements.txt</text>
+    <text x="230" y="95" fill="#94a3b8">← fastapi, uvicorn, openai, python-dotenv</text>
+    <text x="60" y="115" fill="#86efac">└── agent/</text>
+    <text x="90" y="135" fill="#e2e8f0">├── agent.py</text>
+    <text x="230" y="135" fill="#94a3b8">← LanguageLearningAgent (reasoning loop)</text>
+    <text x="90" y="155" fill="#e2e8f0">├── tools.py</text>
+    <text x="230" y="155" fill="#94a3b8">← 4 Tool classes (generate, score, roleplay×2)</text>
+    <text x="90" y="175" fill="#e2e8f0">└── prompts.py</text>
+    <text x="230" y="175" fill="#94a3b8">← Agent system prompt</text>
+
+    <!-- Frontend -->
+    <text x="30" y="210" fill="#93c5fd">├── frontend/</text>
+    <text x="60" y="230" fill="#e2e8f0">├── package.json</text>
+    <text x="230" y="230" fill="#94a3b8">← React 19, Vite 7, Tailwind, axios, react-router</text>
+    <text x="60" y="250" fill="#e2e8f0">├── vite.config.ts</text>
+    <text x="230" y="250" fill="#94a3b8">← Dev server config</text>
+    <text x="60" y="270" fill="#e2e8f0">├── tailwind.config.js</text>
+    <text x="230" y="270" fill="#94a3b8">← Custom "primary" orange color scale</text>
+    <text x="60" y="290" fill="#e2e8f0">├── index.html</text>
+    <text x="230" y="290" fill="#94a3b8">← SPA entry point</text>
+    <text x="60" y="310" fill="#93c5fd">└── src/</text>
+    <text x="90" y="330" fill="#e2e8f0">├── main.tsx</text>
+    <text x="230" y="330" fill="#94a3b8">← React DOM root</text>
+    <text x="90" y="350" fill="#e2e8f0">├── App.tsx</text>
+    <text x="230" y="350" fill="#94a3b8">← BrowserRouter + 4 Routes</text>
+    <text x="90" y="370" fill="#e2e8f0">├── api.ts</text>
+    <text x="230" y="370" fill="#94a3b8">← axios instance + 6 API functions</text>
+    <text x="90" y="390" fill="#e2e8f0">├── types.ts</text>
+    <text x="230" y="390" fill="#94a3b8">← Exercise, ScoreResult, Roleplay, RoleplayMessage</text>
+    <text x="90" y="410" fill="#e2e8f0">├── index.css</text>
+    <text x="230" y="410" fill="#94a3b8">← Tailwind directives + custom styles</text>
+    <text x="90" y="430" fill="#93c5fd">└── pages/</text>
+    <text x="120" y="450" fill="#e2e8f0">├── Home.tsx</text>
+    <text x="230" y="450" fill="#94a3b8">← Topic/mode form (279 lines)</text>
+    <text x="120" y="470" fill="#e2e8f0">├── Practice.tsx</text>
+    <text x="230" y="470" fill="#94a3b8">← Exercise answering (175 lines)</text>
+    <text x="120" y="490" fill="#e2e8f0">├── Feedback.tsx</text>
+    <text x="230" y="490" fill="#94a3b8">← Scores, tutor modal (369 lines)</text>
+    <text x="120" y="510" fill="#e2e8f0">└── Roleplay.tsx</text>
+    <text x="230" y="510" fill="#94a3b8">← Chat + coach modal (480 lines)</text>
+  </svg>
+</section>
+
+<!-- ══════════════ TYPES ══════════════ -->
+<section id="types">
+  <h2>TypeScript Types</h2>
+  <p><span class="file-badge">frontend/src/types.ts</span></p>
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+classDiagram
+  class Exercise {
+    +question: string
+    +type: string
+    +correct_answer: string
+    +options?: string[]
+  }
+  class ScoreResult {
+    +total_score: string
+    +score_percentage: number
+    +detailed_scores: DetailedScore[]
+    +weak_areas: string[]
+    +recommendations: string
+    +suggested_exercise_type?: string
+  }
+  class DetailedScore {
+    +question_num: number
+    +correct: boolean
+    +feedback: string
+    +question?: string
+    +user_answer?: string
+    +correct_answer?: string
+  }
+  class Roleplay {
+    +roleplay_id: string
+    +persona_name: string
+    +persona_type: string
+    +opening_line: string
+    +scene_context: string
+    +user_goal: string
+  }
+  class RoleplayMessage {
+    +type: 'user' | 'persona' | 'coach'
+    +text: string
+    +politeness_score?: number
+    +grammar_notes?: string[]
+    +vocab_suggestions?: string[]
+    +encouragement?: string
+    +persona_resume?: string
+  }
+
+  ScoreResult --> DetailedScore
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ HOW TO RUN ══════════════ -->
+<section id="run">
+  <h2>How to Run</h2>
+  <div class="card">
+    <h3>Prerequisites</h3>
+    <ul>
+      <li>Python 3.8+</li>
+      <li>Node.js 18+</li>
+      <li>An OpenAI API key</li>
+    </ul>
+
+    <h3>1. Environment</h3>
+    <pre>cd Agent-LanguageAssistant
+echo "OPENAI_API_KEY=sk-your-key" > .env</pre>
+
+    <h3>2. Backend (Terminal 1)</h3>
+    <pre>python3 -m venv venv
+source venv/bin/activate
+cd backend
+pip install -r requirements.txt
+python main.py
+# → Runs on http://localhost:8000</pre>
+
+    <h3>3. Frontend (Terminal 2)</h3>
+    <pre>cd frontend
+npm install
+npm run dev
+# → Runs on http://localhost:5173</pre>
+
+    <h3>4. Open in browser</h3>
+    <pre>open http://localhost:5173</pre>
+  </div>
+</section>
+
+<!-- ══════════════ DESIGN NOTES ══════════════ -->
+<section id="design">
+  <h2>Key Design Decisions</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3>🔧 No LangChain</h3>
+      <p>The agent is built from scratch with just the OpenAI SDK. The reasoning loop is ~60 lines of Python using regex parsing. This makes it fully transparent and easy to debug.</p>
+    </div>
+    <div class="card">
+      <h3>🔀 Hybrid Scoring</h3>
+      <p>Multiple choice and fill-in-the-blank use <strong>deterministic string matching</strong> (normalized). Open-ended answers use <strong>AI evaluation</strong>. Both are merged into a unified response.</p>
+    </div>
+    <div class="card">
+      <h3>🗂️ State via Router</h3>
+      <p>No Redux/Zustand/Context. All inter-page data flows through <code>navigate(path, { state })</code>. Simple, but means you can't deep-link to <code>/practice</code> directly.</p>
+    </div>
+    <div class="card">
+      <h3>🎭 In-memory Sessions</h3>
+      <p>Roleplay sessions are stored in a Python dict. This means they don't survive server restarts — fine for a dev/demo app, but would need a DB for production.</p>
+    </div>
+  </div>
+</section>
+
+</div><!-- /container -->
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer style="text-align:center; padding:2rem; color:#94a3b8; font-size:.85rem; border-top:1px solid #e5e7eb; margin-top:2rem;">
+  Generated from source code • AI Language Learning Agent
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#fed7aa',
+      primaryTextColor: '#1f2937',
+      primaryBorderColor: '#f97316',
+      lineColor: '#f97316',
+      secondaryColor: '#dbeafe',
+      tertiaryColor: '#f0fdf4',
+      fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
+    },
+    flowchart: { curve: 'basis' },
+    sequence: { actorMargin: 50, messageMargin: 40 }
+  });
+</script>
+</body>
+</html>
