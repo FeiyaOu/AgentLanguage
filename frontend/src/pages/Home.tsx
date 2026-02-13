@@ -52,8 +52,13 @@ export default function Home() {
     try {
       const personas = await suggestPersonas(rpTopic, rpDiff);
       setSuggestedPersonas(personas);
-    } catch {
-      setPersonaError('Failed to suggest partners. Make sure the backend is running!');
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 429) {
+        setPersonaError('Slow down! You\'ve searched too many times. Please wait a moment and try again.');
+      } else {
+        setPersonaError('Failed to suggest partners. Make sure the backend is running!');
+      }
     } finally {
       setLoadingPersonas(false);
     }
