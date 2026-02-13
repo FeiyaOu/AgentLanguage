@@ -91,10 +91,28 @@ export const sendRoleplayMessage = async (
   const data = response.data;
   
   // Map response to RoleplayMessage format
+  if (data.type === 'session_end') {
+    return {
+      type: 'system',
+      text: data.final_message || 'Session ended.',
+      goal_progress: data.goal_progress,
+      goal_status: data.goal_status,
+      achieved: data.achieved,
+      turns_remaining: data.turns_remaining,
+      session_over: data.session_over,
+      final_message: data.final_message,
+      timestamp: Date.now(),
+    };
+  }
+
   if (data.type === 'coach_feedback') {
     return {
       type: 'coach',
       text: data.encouragement || '',
+      goal_progress: data.goal_progress,
+      goal_status: data.goal_status,
+      achieved: data.achieved,
+      turns_remaining: data.turns_remaining,
       politeness_score: data.politeness_score,
       grammar_notes: data.grammar_notes,
       vocab_suggestions: data.vocab_suggestions,
@@ -106,9 +124,44 @@ export const sendRoleplayMessage = async (
     return {
       type: 'persona',
       text: data.persona_response || '',
+      goal_progress: data.goal_progress,
+      goal_status: data.goal_status,
+      achieved: data.achieved,
+      turns_remaining: data.turns_remaining,
       timestamp: Date.now(),
     };
   }
+};
+
+export const getRoleplayHint = async (
+  roleplayId: string,
+  turnCount: number
+): Promise<RoleplayMessage> => {
+  const response = await api.post('/api/roleplay-message', {
+    roleplay_id: roleplayId,
+    user_message: '',
+    turn_count: turnCount,
+    mode: 'hint',
+    consume_turn: false,
+  });
+
+  const data = response.data;
+
+  // Hint is returned as coach_feedback
+  return {
+    type: 'coach',
+    text: data.encouragement || '',
+    goal_progress: data.goal_progress,
+    goal_status: data.goal_status,
+    achieved: data.achieved,
+    turns_remaining: data.turns_remaining,
+    politeness_score: data.politeness_score,
+    grammar_notes: data.grammar_notes,
+    vocab_suggestions: data.vocab_suggestions,
+    encouragement: data.encouragement,
+    persona_resume: data.persona_resume,
+    timestamp: Date.now(),
+  };
 };
 
 export const endRoleplay = async (

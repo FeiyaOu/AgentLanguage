@@ -4,6 +4,7 @@ FastAPI backend for the Language Learning Agent.
 
 import os
 import json
+import re
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,6 +56,7 @@ class Exercise(BaseModel):
     type: str
     correct_answer: str
     options: List[str] = []
+    tokens: List[str] = []
 
 
 class GeneratePracticeResponse(BaseModel):
@@ -115,17 +117,27 @@ class StartRoleplayResponse(BaseModel):
     opening_line: str
     scene_context: str
     user_goal: str
+    max_turns: int
 
 
 class RoleplayMessageRequest(BaseModel):
     roleplay_id: str
     user_message: str
     turn_count: int
+    mode: Optional[str] = None  # "chat" (default) or "hint"
+    consume_turn: Optional[bool] = None
 
 
 class RoleplayMessageResponse(BaseModel):
-    type: str  # "dialogue" or "coach_feedback"
+    type: str  # "dialogue", "coach_feedback", or "session_end"
     persona_response: Optional[str] = None
+    # Goal / game state
+    goal_progress: Optional[int] = None  # 0-100
+    goal_status: Optional[str] = None  # in_progress | off_track | achieved
+    achieved: Optional[bool] = None
+    turns_remaining: Optional[int] = None
+    session_over: Optional[bool] = None
+    final_message: Optional[str] = None
     # Coach feedback fields
     politeness_score: Optional[int] = None
     grammar_notes: Optional[List[str]] = None
@@ -196,6 +208,11 @@ def score_answers(request: ScoreAnswersRequest):
         def _norm(text: str) -> str:
             return " ".join(str(text or "").strip().lower().split())
 
+        def _norm_sentence(text: str) -> str:
+            cleaned = _norm(text)
+            cleaned = re.sub(r"[^\w\s']+", "", cleaned)
+            return " ".join(cleaned.split())
+
         # Ask the AI tool for richer per-question feedback.
         ai_result: Optional[Dict[str, Any]] = None
         try:
@@ -232,9 +249,12 @@ def score_answers(request: ScoreAnswersRequest):
 
             ai_item = ai_scores_by_num.get(question_num, {})
 
-            # Hybrid correctness: deterministic for structured types, AI for open-ended.
-            if exercise_type in {"multiple_choice", "fill_in_the_blank", "fill_blank"}:
-                is_correct = _norm(actual) == _norm(expected) if expected else False
+            # Hybrid correctness: deterministic for structured (no free-typing) types, AI for open-ended.
+            if exercise_type in {"multiple_choice", "banked_cloze", "sentence_reordering"}:
+                if exercise_type == "sentence_reordering":
+                    is_correct = _norm_sentence(actual) == _norm_sentence(expected) if expected else False
+                else:
+                    is_correct = _norm(actual) == _norm(expected) if expected else False
             else:
                 is_correct = bool(ai_item.get("correct"))
 
@@ -398,6 +418,13 @@ def start_roleplay(request: StartRoleplayRequest):
     try:
         import uuid
         from agent.tools import RoleplayTool
+
+        max_turns_by_difficulty = {
+            "beginner": 6,
+            "intermediate": 7,
+            "advanced": 8,
+        }
+        max_turns = max_turns_by_difficulty.get(str(request.difficulty or "").strip().lower(), 6)
         
         # Generate unique roleplay ID
         roleplay_id = str(uuid.uuid4())
@@ -415,6 +442,8 @@ def start_roleplay(request: StartRoleplayRequest):
         result = agent._extract_json(raw)
         
         # Store session
+        user_goal = result.get("user_goal", f"Practice your {request.topic} skills")
+        scene_context = result.get("scene_context", "")
         roleplay_sessions[roleplay_id] = {
             "topic": request.topic,
             "difficulty": request.difficulty,
@@ -422,8 +451,11 @@ def start_roleplay(request: StartRoleplayRequest):
             "persona_name": result.get("persona_name", "AI Character"),
             "conversation_history": [],
             "turn_count": 0,
-            "scene_context": result.get("scene_context", ""),
-            "custom_description": request.custom_description
+            "scene_context": scene_context,
+            "user_goal": user_goal,
+            "goal_progress": 0,
+            "max_turns": max_turns,
+            "custom_description": request.custom_description,
         }
         
         return {
@@ -431,8 +463,9 @@ def start_roleplay(request: StartRoleplayRequest):
             "persona_name": result.get("persona_name", "AI Character"),
             "persona_type": request.persona_type,
             "opening_line": result.get("opening_line", "Hello! Let's practice."),
-            "scene_context": result.get("scene_context", f"Practicing {request.topic}"),
-            "user_goal": result.get("user_goal", f"Practice your {request.topic} skills")
+            "scene_context": scene_context or f"Practicing {request.topic}",
+            "user_goal": user_goal,
+            "max_turns": max_turns,
         }
     
     except Exception as e:
@@ -467,17 +500,49 @@ def roleplay_message(request: RoleplayMessageRequest):
             except Exception:
                 score = default
             return max(0, min(100, score))
+
+        def _as_goal_status(value: Any) -> str:
+            status = str(value or "").strip().lower()
+            if status in {"in_progress", "off_track", "achieved"}:
+                return status
+            return "in_progress"
         
         # Get session
         session = roleplay_sessions.get(request.roleplay_id)
         if not session:
             raise HTTPException(status_code=404, detail="Roleplay session not found")
+
+        mode = (request.mode or "chat").strip().lower()
+        consume_turn = request.consume_turn
+        if consume_turn is None:
+            consume_turn = mode != "hint"
+
+        # Server-side turn count is the source of truth.
+        if consume_turn:
+            session["turn_count"] = int(session.get("turn_count") or 0) + 1
+
+        effective_turn = int(session.get("turn_count") or 0)
+        max_turns = int(session.get("max_turns") or 0)
+        turns_remaining = max(0, max_turns - effective_turn)
+
+        # Hard cap: do not generate further dialogue once out of turns.
+        if consume_turn and max_turns and effective_turn > max_turns:
+            return RoleplayMessageResponse(
+                type="session_end",
+                session_over=True,
+                final_message="Out of turns — session complete.",
+                goal_progress=_score_0_100(session.get("goal_progress"), default=0),
+                goal_status="in_progress",
+                achieved=False,
+                turns_remaining=0,
+            )
         
-        # Add user message to history
-        session["conversation_history"].append({
-            "role": "user",
-            "message": request.user_message
-        })
+        user_message = (request.user_message or "").strip()
+        if mode != "hint":
+            session["conversation_history"].append({
+                "role": "user",
+                "message": user_message
+            })
         
         # Generate response
         tool = RoleplayResponseTool(agent.client)
@@ -485,9 +550,13 @@ def roleplay_message(request: RoleplayMessageRequest):
             persona_type=session["persona_type"],
             persona_name=session["persona_name"],
             conversation_history=session["conversation_history"],
-            user_message=request.user_message,
-            turn_count=request.turn_count,
-            scenario=session["topic"]
+            user_message=user_message,
+            turn_count=effective_turn,
+            scenario=session["topic"],
+            scene_context=_as_str(session.get("scene_context"), default=""),
+            user_goal=_as_str(session.get("user_goal"), default=""),
+            turns_remaining=turns_remaining,
+            mode=mode,
         )
         
         result = agent._extract_json(raw)
@@ -496,6 +565,11 @@ def roleplay_message(request: RoleplayMessageRequest):
             raise HTTPException(status_code=500, detail="Invalid model output: expected JSON object")
         
         response_type = result.get("type", "dialogue")
+
+        goal_progress = _score_0_100(result.get("goal_progress"), default=_score_0_100(session.get("goal_progress"), default=0))
+        goal_status = _as_goal_status(result.get("goal_status"))
+        achieved = bool(result.get("achieved")) or goal_status == "achieved" or goal_progress >= 100
+        session["goal_progress"] = goal_progress
         
         if response_type == "coach_feedback":
             # Add coach feedback to history
@@ -513,6 +587,10 @@ def roleplay_message(request: RoleplayMessageRequest):
             
             return RoleplayMessageResponse(
                 type="coach_feedback",
+                goal_progress=goal_progress,
+                goal_status=goal_status,
+                achieved=achieved,
+                turns_remaining=turns_remaining,
                 politeness_score=_score_0_100(result.get("politeness_score"), default=75),
                 grammar_notes=_as_list_of_str(result.get("grammar_notes")),
                 vocab_suggestions=_as_list_of_str(result.get("vocab_suggestions")),
@@ -530,6 +608,10 @@ def roleplay_message(request: RoleplayMessageRequest):
             
             return RoleplayMessageResponse(
                 type="dialogue",
+                goal_progress=goal_progress,
+                goal_status=goal_status,
+                achieved=achieved,
+                turns_remaining=turns_remaining,
                 persona_response=persona_response
             )
     
