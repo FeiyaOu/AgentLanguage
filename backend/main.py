@@ -371,6 +371,29 @@ def roleplay_message(request: RoleplayMessageRequest):
     """Send a message in an active roleplay session."""
     try:
         from agent.tools import RoleplayResponseTool
+
+        def _as_str(value: Any, default: str = "") -> str:
+            if value is None:
+                return default
+            return str(value)
+
+        def _as_list_of_str(value: Any) -> List[str]:
+            if value is None:
+                return []
+            if isinstance(value, list):
+                return [str(v) for v in value if str(v).strip()]
+            # Sometimes the model returns a single string instead of a list
+            return [str(value)] if str(value).strip() else []
+
+        def _score_0_100(value: Any, default: int = 75) -> int:
+            try:
+                if isinstance(value, str):
+                    cleaned = value.strip().replace("%", "")
+                    value = cleaned
+                score = int(float(value))
+            except Exception:
+                score = default
+            return max(0, min(100, score))
         
         # Get session
         session = roleplay_sessions.get(request.roleplay_id)
@@ -395,6 +418,9 @@ def roleplay_message(request: RoleplayMessageRequest):
         )
         
         result = agent._extract_json(raw)
+
+        if not isinstance(result, dict):
+            raise HTTPException(status_code=500, detail="Invalid model output: expected JSON object")
         
         response_type = result.get("type", "dialogue")
         
@@ -414,15 +440,15 @@ def roleplay_message(request: RoleplayMessageRequest):
             
             return RoleplayMessageResponse(
                 type="coach_feedback",
-                politeness_score=result.get("politeness_score", 75),
-                grammar_notes=result.get("grammar_notes", []),
-                vocab_suggestions=result.get("vocab_suggestions", []),
-                encouragement=result.get("encouragement", "Keep going!"),
-                persona_resume=result.get("persona_resume", "")
+                politeness_score=_score_0_100(result.get("politeness_score"), default=75),
+                grammar_notes=_as_list_of_str(result.get("grammar_notes")),
+                vocab_suggestions=_as_list_of_str(result.get("vocab_suggestions")),
+                encouragement=_as_str(result.get("encouragement"), default="Keep going!"),
+                persona_resume=_as_str(result.get("persona_resume"), default="")
             )
         else:
             # Regular dialogue
-            persona_response = result.get("persona_response", "...")
+            persona_response = _as_str(result.get("persona_response"), default="...")
             
             session["conversation_history"].append({
                 "role": "persona",

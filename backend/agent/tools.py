@@ -162,7 +162,7 @@ class RoleplayTool(Tool):
         )
         self.llm = llm_client
     
-    def execute(self, scenario: str, persona_type: str = "friendly", difficulty: str = "beginner") -> str:
+    def execute(self, scenario: str, persona_type: str = "friendly", difficulty: str = "beginner", custom_description: str = None) -> str:
         """Generate roleplay opening scene with persona."""
         
         persona_configs = {
@@ -184,22 +184,31 @@ class RoleplayTool(Tool):
             }
         }
         
-        persona_config = persona_configs.get(persona_type, persona_configs["friendly"])
+        # Handle custom persona
+        if persona_type == "custom" and custom_description:
+            persona_config = {
+                "name": "Custom Character",
+                "traits": custom_description
+            }
+            custom_prompt_addition = f"\nCreate a unique name for this character based on their description."
+        else:
+            persona_config = persona_configs.get(persona_type, persona_configs["friendly"])
+            custom_prompt_addition = ""
         
         prompt = f"""Create an opening scene for a language learning roleplay scenario.
 
 Scenario: {scenario}
 Difficulty: {difficulty}
 Persona: {persona_config["name"]}
-Traits: {persona_config["traits"]}
+Traits: {persona_config["traits"]}{custom_prompt_addition}
 
-You are playing the role of {persona_config["name"]}. Set the scene and speak your first line in character.
+You are playing the role of this character. Set the scene and speak your first line in character.
 
 The user's goal is to successfully navigate this conversation (e.g., order food, ask for directions, etc.).
 
 Return ONLY a JSON object:
 {{
-  "persona_name": "{persona_config["name"]}",
+  "persona_name": "Character's name",
   "persona_type": "{persona_type}",
   "opening_line": "Your first in-character line",
   "scene_context": "Brief description of the setting",
@@ -243,29 +252,78 @@ class RoleplayResponseTool(Tool):
         if is_coach_turn:
             # Generate coach feedback
             recent_turns = conversation_history[-6:] if len(conversation_history) >= 6 else conversation_history
+
+            def _turn_text(turn: Dict[str, Any]) -> str:
+                return str(
+                    turn.get("message")
+                    or turn.get("content")
+                    or turn.get("text")
+                    or ""
+                ).strip()
+
+            def _speaker(turn: Dict[str, Any]) -> str:
+                role = str(turn.get("role") or "").strip().lower()
+                if role == "user":
+                    return "User"
+                if role == "coach":
+                    return "Coach"
+                return persona_name
+
+            # Format conversation for better analysis
+            conversation_text = "\n".join(
+                [f"{_speaker(turn)}: {_turn_text(turn)}" for turn in recent_turns]
+            )
             
-            prompt = f"""You are an English language coach. Review the user's last few messages in this roleplay scenario.
+            prompt = f"""You are an expert English language coach analyzing a student's conversation practice.
 
-Scenario: {scenario}
-Recent conversation:
-{json.dumps(recent_turns, indent=2)}
+SCENARIO: {scenario}
+STUDENT'S CONVERSATION PARTNER: {persona_name}
 
-Analyze the user's performance on:
-1. Politeness (0-100 score)
-2. Grammar errors (list specific mistakes)
-3. Vocabulary usage (suggest better words or phrases)
+RECENT CONVERSATION TO ANALYZE:
+{conversation_text}
 
-Then, briefly resume the roleplay as {persona_name} with encouragement.
+YOUR TASK: Carefully analyze the STUDENT's messages (not the partner's) and provide specific, personalized feedback.
 
-Return ONLY a JSON object:
+ANALYSIS REQUIREMENTS:
+
+1. POLITENESS SCORE (0-100):
+   - Score based on how polite and appropriate the student's language is
+   - Consider: use of please/thank you, formal vs informal register, directness
+   - 90-100: Excellent, very polite
+   - 70-89: Good, mostly polite
+   - 50-69: Needs improvement
+   - Below 50: Impolite or inappropriate
+
+2. GRAMMAR NOTES:
+   - List SPECIFIC grammar mistakes the student made
+   - For each mistake, show what they said and how to correct it
+   - If no mistakes, say "No grammar issues detected - great job!"
+   - Examples: subject-verb agreement, tense errors, article usage, word order
+
+3. VOCABULARY SUGGESTIONS:
+   - Suggest better or more natural word choices
+   - Recommend useful phrases for this scenario
+   - Point out any awkward or unnatural expressions
+   - If vocabulary was good, suggest advanced alternatives
+
+4. ENCOURAGEMENT:
+   - Give specific positive feedback about what they did well
+   - Motivate them to continue practicing
+
+5. PERSONA RESUME:
+   - Write a brief line as {persona_name} to continue the conversation naturally
+
+Return ONLY a valid JSON object with these exact fields:
 {{
   "type": "coach_feedback",
-  "politeness_score": 85,
-  "grammar_notes": ["Consider using 'I would like' instead of 'I want'"],
-  "vocab_suggestions": ["Try 'Could you possibly...' for more polite requests"],
-  "encouragement": "Great progress! Let's continue...",
-  "persona_resume": "{persona_name}'s brief in-character line to continue the scene"
-}}"""
+  "politeness_score": <number 0-100 based on your analysis>,
+  "grammar_notes": [<list of specific grammar corrections or "No grammar issues detected - great job!">],
+  "vocab_suggestions": [<list of vocabulary improvements or useful phrases>],
+  "encouragement": "<specific positive feedback about their performance>",
+  "persona_resume": "<{persona_name}'s next line to continue the scene>"
+}}
+
+IMPORTANT: Generate REAL feedback based on what the student actually said. Do NOT use example values."""
         else:
             # Generate in-character response
             persona_traits = {
