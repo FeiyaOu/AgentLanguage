@@ -226,15 +226,15 @@ export default function Roleplay() {
         <motion.div 
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-lg w-full relative"
+          className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-lg w-full relative flex flex-col max-h-[85vh]"
         >
-          <div className="bg-gradient-to-br from-orange-400 to-amber-500 p-8 text-white relative overflow-hidden">
+          <div className="bg-gradient-to-br from-orange-400 to-amber-500 p-8 text-white relative flex-shrink-0">
              <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
              <h1 className="text-3xl font-bold mb-2">Mission Briefing</h1>
              <p className="text-orange-50 font-medium">Topic: {topic}</p>
           </div>
           
-          <div className="p-8 space-y-6">
+          <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
             <div className="flex items-start gap-4">
                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
                  <UserIcon className="w-6 h-6" />
@@ -321,43 +321,88 @@ export default function Roleplay() {
       </div>
 
       {/* Game HUD */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Goal Progress</p>
-              <p className="text-[11px] font-semibold text-slate-500">{Math.max(0, Math.min(100, goalProgress))}%</p>
+      <div className="bg-white border-b border-slate-100 px-6 py-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+          
+          {/* Goal Progress - Clean & Large Percentage */}
+          <div className="flex-1 w-full group relative cursor-help">
+             <div className="absolute bottom-full left-0 mb-3 w-56 bg-slate-800 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all pointer-events-none z-20">
+              <p className="font-semibold mb-1">Goal Progress</p>
+              <p>This bar fills up as you complete objectives in your conversation. Aim for 100%! 🎯</p>
+              <div className="absolute top-full left-6 -mt-1 border-4 border-transparent border-t-slate-800"></div>
             </div>
-            <motion.div
-              key={progressPulse}
-              animate={goalStatus === 'off_track' ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
-              transition={{ duration: 0.35 }}
-              className="h-2.5 bg-slate-100 rounded-full overflow-hidden"
-            >
-              <motion.div
-                initial={false}
-                animate={{ width: `${Math.max(0, Math.min(100, goalProgress))}%` }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-                className={`h-full rounded-full ${
-                  goalStatus === 'achieved'
-                    ? 'bg-emerald-500'
-                    : goalStatus === 'off_track'
-                    ? 'bg-amber-500'
-                    : 'bg-orange-500'
-                }`}
-              />
-            </motion.div>
+
+            <div className="flex items-center gap-4">
+               {/* Percentage Badge */}
+               <div className={`
+                 flex items-center justify-center w-14 h-14 rounded-2xl shadow-sm border-2 transition-all duration-300
+                 ${goalStatus === 'achieved' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 
+                   goalStatus === 'off_track' ? 'bg-amber-50 border-amber-100 text-amber-600' : 
+                   'bg-orange-50 border-orange-100 text-orange-600'}
+               `}>
+                 <span className="text-xl font-bold">{Math.max(0, Math.min(100, goalProgress))}%</span>
+               </div>
+
+               {/* Bar & Label container */}
+               <div className="flex-1 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">Mission Progress</p>
+                    {goalStatus === 'achieved' && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">COMPLETED</span>}
+                  </div>
+                  
+                  <motion.div
+                    key={progressPulse}
+                    animate={goalStatus === 'off_track' ? { x: [0, -3, 3, -2, 2, 0] } : { x: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-100 group-hover:border-slate-200 transition-colors"
+                  >
+                    <motion.div
+                      initial={false}
+                      animate={{ width: `${Math.max(0, Math.min(100, goalProgress))}%` }}
+                      transition={{ duration: 0.8, type: "spring", bounce: 0.2 }} // Smoother spring animation
+                      className={`h-full rounded-full shadow-sm relative overflow-hidden ${
+                        goalStatus === 'achieved'
+                          ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+                          : goalStatus === 'off_track'
+                          ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+                          : 'bg-gradient-to-r from-orange-400 to-orange-500'
+                      }`}
+                    >
+                      {/* Sub-shine effect */}
+                      <div className="absolute top-0 left-0 w-full h-full bg-white/20 transform -skew-x-12 translate-x-[-100%] animate-[shine_2s_infinite]"></div>
+                    </motion.div>
+                  </motion.div>
+               </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Energy</div>
-            <div className="flex items-center">
+          {/* Vertical Divider (Hidden on mobile) */}
+          <div className="hidden sm:block w-px h-12 bg-slate-100"></div>
+
+          {/* Energy/Turns - Clean Visuals */}
+          <div className="w-full sm:w-auto flex flex-col justify-center gap-1.5 group relative cursor-help">
+             <div className="absolute bottom-full right-0 mb-3 w-56 bg-slate-800 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 translate-y-2 group-hover:translate-y-0 group-hover:opacity-100 transition-all pointer-events-none z-20">
+              <p className="font-semibold mb-1">Energy remaining</p>
+              <p>Each message you send costs 1 unit of energy. Make your words count! ⚡</p>
+              <div className="absolute top-full right-12 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+            </div>
+
+            <div className="flex items-center justify-between sm:justify-end gap-2">
+               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-indigo-500 transition-colors">Energy</span>
+               <span className={`text-xs font-bold font-mono ${turnsRemaining < 2 ? 'text-red-500' : 'text-slate-500'}`}>{turnsRemaining}/{maxTurns}</span>
+            </div>
+            
+            <div className="flex items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 group-hover:border-indigo-100 transition-colors">
               {Array.from({ length: maxTurns }).map((_, idx) => {
                 const active = idx < turnsRemaining;
                 return (
                   <BoltIcon
                     key={idx}
-                    className={`w-4 h-4 ${active ? 'text-indigo-500' : 'text-slate-200'}`}
+                    className={`w-5 h-5 mx-0.5 transition-all duration-300 ${
+                      active 
+                        ? 'text-indigo-500 fill-indigo-500 drop-shadow-sm scale-100' 
+                        : 'text-slate-200 scale-90'
+                    }`}
                   />
                 );
               })}
