@@ -42,7 +42,7 @@ function AppContent() {
       {!isRoleplay && (
         <footer className="py-6 text-center border-t border-slate-200 dark:border-slate-800 transition-colors duration-200">
           <p className="text-sm text-slate-400 dark:text-slate-500">
-            &copy; {new Date().getFullYear()} <span className="font-semibold text-slate-500 dark:text-slate-400">TalkTutor</span>. All rights reserved.
+            &copy; {new Date().getFullYear()} <span className="font-semibold text-slate-500 dark:text-slate-400">AgentLanguage</span>. All rights reserved.
           </p>
         </footer>
       )}
