@@ -643,9 +643,9 @@ export default function Roleplay() {
                initial={{ opacity: 0, scale: 0.9 }}
                animate={{ opacity: 1, scale: 1 }}
                exit={{ opacity: 0, scale: 0.9 }}
-               className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl transition-colors duration-300"
+               className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl transition-colors duration-300 max-h-[85vh] flex flex-col"
              >
-               <div className="bg-blue-500 dark:bg-blue-600 p-4 flex items-center justify-between text-white">
+               <div className="bg-blue-500 dark:bg-blue-600 p-4 flex items-center justify-between text-white shrink-0">
                  <div className="flex items-center gap-2 font-bold">
                    <SparklesIcon className="w-5 h-5" />
                    AI Coach Breakdown
@@ -653,7 +653,7 @@ export default function Roleplay() {
                  <button onClick={handleResumeAfterCoach} className="hover:bg-white/20 p-1 rounded-full"><XMarkIcon className="w-5 h-5" /></button>
                </div>
                
-               <div className="p-6 space-y-4">
+               <div className="p-6 space-y-4 overflow-y-auto flex-1">
                  {typeof coachFeedback.politeness_score === 'number' && (
                    <div className="space-y-2">
                      <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Politeness</p>
