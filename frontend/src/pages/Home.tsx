@@ -133,7 +133,7 @@ export default function Home() {
             Fluent in <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">Minutes</span>.
           </h1>
           <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Master any language scenario with an intelligent AI tutor that adapts to your learning style in real-time.
+            Master English scenario with an intelligent AI tutor that adapts to your learning style in real-time.
           </p>
         </motion.div>
 
