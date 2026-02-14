@@ -41,14 +41,14 @@ export default function Feedback() {
   const sendDisabled = loading || questionCapReached || sessionCapReached;
 
   // Build context object for the active question
-  const getActiveContext = () => {
+  const getActiveContext = (): Record<string, string | number | boolean | null> | undefined => {
     if (activeQuestion === null) return undefined;
     const score = result.detailed_scores.find(s => s.question_num === activeQuestion);
     if (!score) return undefined;
     return {
-      question: score.question,
-      user_answer: score.user_answer,
-      correct_answer: score.correct_answer,
+      question: score.question ?? '',
+      user_answer: score.user_answer ?? '',
+      correct_answer: score.correct_answer ?? '',
       feedback: score.feedback,
     };
   };
@@ -91,10 +91,11 @@ export default function Feedback() {
       // Increment counters
       setTurnCounts(prev => ({ ...prev, [activeQuestion]: (prev[activeQuestion] ?? 0) + 1 }));
       setSessionTurns(prev => prev + 1);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Handle 429 rate limit
-      if (err?.response?.status === 429) {
-        setTutorError(err.response.data?.detail ?? 'Rate limit exceeded. Please wait a moment.');
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
+      if (axiosErr?.response?.status === 429) {
+        setTutorError(axiosErr.response.data?.detail ?? 'Rate limit exceeded. Please wait a moment.');
         // Remove optimistic user message
         setHistories(prev => ({ ...prev, [activeQuestion]: prevHistory }));
       } else {

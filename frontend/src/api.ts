@@ -36,7 +36,7 @@ export const scoreAnswers = async (
 
 export const askTutor = async (
   question: string,
-  context?: Record<string, any>,
+  context?: Record<string, string | number | boolean | null>,
   history: { role: string; content: string }[] = []
 ): Promise<{ answer: string }> => {
   const response = await api.post('/api/ask-tutor', {
