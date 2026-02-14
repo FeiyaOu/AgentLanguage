@@ -32,7 +32,10 @@ app.add_middleware(
         "http://127.0.0.1:5175",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-    ],  # Vite and common React ports
+    ] + [
+        origin for origin in [os.getenv("FRONTEND_URL")]
+        if origin
+    ],  # Vite dev ports + deployed frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -840,4 +843,5 @@ def end_roleplay(request: EndRoleplayRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
