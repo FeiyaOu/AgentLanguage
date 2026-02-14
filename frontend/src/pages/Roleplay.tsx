@@ -56,6 +56,7 @@ export default function Roleplay() {
       return;
     }
     initializeRoleplay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topic, difficulty, personaType, customDescription]);
 
   useEffect(() => {
@@ -155,11 +156,12 @@ export default function Roleplay() {
       } else {
         setMessages(prev => [...prev, response]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending message:', error);
-      if (error?.response?.status === 429) {
-        setChatError(error.response.data?.detail ?? 'Rate limit reached. Please wait a moment.');
-      } else if (error?.response?.status === 410) {
+      const err = error as { response?: { status?: number; data?: { detail?: string } } };
+      if (err?.response?.status === 429) {
+        setChatError(err.response.data?.detail ?? 'Rate limit reached. Please wait a moment.');
+      } else if (err?.response?.status === 410) {
         setChatError('Session expired. Please start a new roleplay.');
         setSessionOver(true);
       }
@@ -190,10 +192,11 @@ export default function Roleplay() {
       setCoachFeedback(hint);
       setShowCoachModal(true);
       setHintCount(prev => prev + 1);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting hint:', error);
-      if (error?.response?.status === 429) {
-        setChatError(error.response.data?.detail ?? 'Rate limit reached. Please wait.');
+      const err = error as { response?: { status?: number; data?: { detail?: string } } };
+      if (err?.response?.status === 429) {
+        setChatError(err.response.data?.detail ?? 'Rate limit reached. Please wait.');
       }
     } finally {
       setGettingHint(false);
@@ -227,7 +230,7 @@ export default function Roleplay() {
     try {
       await endRoleplay(roleplay.roleplay_id);
       navigate('/');
-    } catch (error) {
+    } catch {
       navigate('/');
     }
   };
