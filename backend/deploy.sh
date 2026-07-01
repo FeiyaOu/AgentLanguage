@@ -17,7 +17,10 @@ cp main.py requirements.txt "$BUILD_DIR/"
 cp -r agent "$BUILD_DIR/agent"
 
 echo "==> Installing dependencies into package (linux-compatible)..."
-python3 -m pip install -r requirements.txt \
+# Note: "exceptiongroup" is a conditional dependency only needed on Python < 3.11.
+# pip evaluates such markers against the LOCAL interpreter, so when building on a
+# newer Python it gets skipped — but FC runs Python 3.10 and needs it. Add explicitly.
+python3 -m pip install -r requirements.txt exceptiongroup \
     -t "$BUILD_DIR" \
     --platform manylinux2014_x86_64 \
     --python-version 3.10 \
@@ -32,4 +35,4 @@ rm -rf "$BUILD_DIR"
 
 echo "==> Done: $(cd .. && pwd)/deploy.zip"
 echo "    Upload it in the FC console, start command:"
-echo "    uvicorn main:app --host 0.0.0.0 --port 9000"
+echo "    python3 -m uvicorn main:app --host 0.0.0.0 --port 9000"
