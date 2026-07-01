@@ -5,6 +5,10 @@ Each tool has a name, description, and execute function.
 
 from typing import Dict, List, Any
 import json
+import os
+
+# Model name is configurable so we can switch between OpenAI and Qianwen (DashScope)
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen-plus")
 
 
 class Tool:
@@ -83,7 +87,7 @@ Guidelines:
 """
 
         response = self.llm.chat.completions.create(
-            model="gpt-4o-mini",
+            model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
@@ -148,7 +152,7 @@ This is just an example, generate different feedback.
 """
 
         response = self.llm.chat.completions.create(
-            model="gpt-4o-mini",
+            model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.5
         )
@@ -222,7 +226,7 @@ Return ONLY a JSON object:
 Make it engaging and realistic!"""
 
         response = self.llm.chat.completions.create(
-            model="gpt-4o-mini",
+            model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.8,
             max_tokens=300,
@@ -384,7 +388,7 @@ Return ONLY a JSON object:
         _max_tokens = 400 if mode == "hint" else 250
 
         response = self.llm.chat.completions.create(
-            model="gpt-4o-mini",
+            model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=_max_tokens,

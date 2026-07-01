@@ -1,6 +1,6 @@
 # TalkTutor — AI Language Learning Platform
 
-A full-stack, AI-powered language learning application featuring adaptive practice drills, immersive roleplay simulations with AI personas, real-time scoring, and a built-in AI tutor — all driven by a custom ReAct agent powered by GPT-4o-mini.
+A full-stack, AI-powered language learning application featuring adaptive practice drills, immersive roleplay simulations with AI personas, real-time scoring, and a built-in AI tutor — all driven by a custom ReAct agent powered by Qwen (通义千问, via Alibaba Cloud DashScope's OpenAI-compatible API).
 
 **Live:** [www.agentlanguage.org](https://www.agentlanguage.org)
 
@@ -16,8 +16,8 @@ A full-stack, AI-powered language learning application featuring adaptive practi
 - 📊 **Smart Scoring** — Hybrid deterministic + AI correctness checking with granular feedback
 - 🌗 **Dark Mode** — Full light/dark theme support with smooth transitions
 - 🎨 **Modern UI** — React 19 + TypeScript + Tailwind CSS with orange-accent design system
-- 🔒 **Rate Limiting** — Per-IP sliding-window protection on all AI endpoints
-- 🚀 **Production Deployed** — Vercel (frontend) + Railway (backend)
+- 🔒 **Rate Limiting** — Per-IP sliding-window protection on all AI endpoints (proxy-aware via `X-Forwarded-For`)
+- 🚀 **Production Deployed** — Vercel (frontend) + Aliyun Function Compute (backend)
 
 ---
 
@@ -38,9 +38,9 @@ A full-stack, AI-powered language learning application featuring adaptive practi
 │  AI Agent (custom ReAct loop)                │
 │  4 tools · 5-iteration max · JSON extraction │
 └──────────────────┬──────────────────────────┘
-                   │ API
+                   │ API (OpenAI-compatible)
 ┌──────────────────▼──────────────────────────┐
-│  OpenAI GPT-4o-mini                          │
+│  Qwen (qwen-plus) via DashScope              │
 └─────────────────────────────────────────────┘
 ```
 
@@ -84,8 +84,8 @@ Full immersive conversation experience:
 |-------|-------------|
 | **Frontend** | React 19, TypeScript 5.9, Vite 7, Tailwind CSS 3.4, Framer Motion 12, React Router 7, Axios, Heroicons |
 | **Backend** | Python 3.8+, FastAPI, Uvicorn, OpenAI SDK, Pydantic |
-| **AI** | GPT-4o-mini, Custom ReAct Agent, 4 tool implementations |
-| **Hosting** | Vercel (frontend), Railway (backend) |
+| **AI** | Qwen (qwen-plus via DashScope compatible mode), Custom ReAct Agent, 4 tool implementations |
+| **Hosting** | Vercel (frontend), Aliyun Function Compute (backend) |
 | **Domain** | Namecheap DNS → Vercel |
 
 ---
@@ -141,7 +141,8 @@ TalkTutor/
 ├── backend/
 │   ├── main.py              # FastAPI server, routes, rate limiting, session mgmt
 │   ├── requirements.txt     # Python dependencies
-│   ├── Procfile             # Railway start command
+│   ├── deploy.sh            # Builds deploy.zip for Aliyun Function Compute
+│   ├── Procfile             # Legacy Railway start command
 │   └── agent/
 │       ├── agent.py         # ReAct reasoning loop (LanguageLearningAgent)
 │       ├── tools.py         # 4 tool implementations
@@ -164,7 +165,7 @@ TalkTutor/
 │           ├── Practice.tsx  # Exercise interface (3 question types)
 │           ├── Feedback.tsx  # Score results + AI tutor chat
 │           └── Roleplay.tsx  # Immersive conversation with game HUD
-├── railway.toml             # Railway build/deploy config
+├── railway.toml             # Legacy Railway build/deploy config
 ├── docs/                    # Architecture docs and specs
 └── .env                     # API keys (gitignored)
 ```
@@ -176,14 +177,21 @@ TalkTutor/
 ### Prerequisites
 - Python 3.8+
 - Node.js 18+
-- OpenAI API key
+- Qwen API key (from [Alibaba Cloud Bailian / 百炼](https://bailian.console.aliyun.com))
 
 ### 1. Environment
 ```bash
 cd TalkTutor
 cp .env.example .env
-# Add your key: OPENAI_API_KEY=sk-...
+# Add your keys:
+#   OPENAI_API_KEY=sk-...   (Bailian/DashScope API key)
+#   OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+#   LLM_MODEL=qwen-plus     (optional, defaults to qwen-plus)
 ```
+
+> The backend uses the OpenAI SDK pointed at DashScope's OpenAI-compatible
+> endpoint. To switch back to OpenAI, remove `OPENAI_BASE_URL` and set
+> `LLM_MODEL=gpt-4o-mini` with an OpenAI API key.
 
 ### 2. Backend
 ```bash
@@ -209,9 +217,43 @@ Runs on **http://localhost:5173**
 
 | Service | Platform | Config |
 |---------|----------|--------|
-| Frontend | Vercel | Root directory: `frontend`, env: `VITE_API_URL` |
-| Backend | Railway | Uses `railway.toml`, env: `OPENAI_API_KEY`, `FRONTEND_URL`, `PORT` |
+| Frontend | Vercel | Root directory: `frontend`, env: `VITE_API_URL` (backend HTTPS URL) |
+| Backend | Aliyun Function Compute (FC) | Web function, Python 3.10, upload `deploy.zip` |
 | Domain | Namecheap | A record → `76.76.21.21`, CNAME `www` → `cname.vercel-dns.com` |
+
+### Backend: Aliyun Function Compute
+
+**Environment variables (FC console):**
+
+| Variable | Value |
+|----------|-------|
+| `OPENAI_API_KEY` | Bailian/DashScope API key (`sk-...`) |
+| `OPENAI_BASE_URL` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| `LLM_MODEL` | `qwen-plus` (or `qwen-turbo` for lower cost) |
+| `FRONTEND_URL` | Vercel frontend URL (for CORS), e.g. `https://www.agentlanguage.org` |
+
+**Deploy steps:**
+
+1. Build the package locally (bundles Linux-compatible dependencies — required because macOS wheels won't run on FC):
+   ```bash
+   cd backend && ./deploy.sh
+   ```
+   This produces `deploy.zip` at the repo root.
+2. In the [FC console](https://fcnext.console.aliyun.com): create a **Web function** → runtime **Python 3.10** → upload `deploy.zip`.
+3. Start command (dependencies are already bundled, no `pip install` needed):
+   ```
+   uvicorn main:app --host 0.0.0.0 --port 9000
+   ```
+4. Set env vars from the table above.
+5. **Instance settings:** single-instance concurrency `100`, max instances `1` — sessions and rate-limit state live in memory, so multiple instances would lose sessions.
+6. Verify at the generated HTTPS domain (`https://xxx.<region>.fcapp.run/docs`).
+7. In Vercel, set `VITE_API_URL` to that domain and **redeploy** the frontend (Vite bakes env vars in at build time).
+
+> **Note:** Rate limiting reads `X-Forwarded-For` so per-IP limits work correctly behind FC's gateway/reverse proxy.
+
+### Legacy: Railway
+
+The previous Railway setup ([railway.toml](railway.toml) + [backend/Procfile](backend/Procfile)) is kept for reference. It used env vars `OPENAI_API_KEY`, `FRONTEND_URL`, `PORT`.
 
 ---
 

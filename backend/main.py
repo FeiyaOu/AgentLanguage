@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from agent.agent import LanguageLearningAgent
+from agent.tools import LLM_MODEL
 
 # Load environment variables
 load_dotenv()
@@ -118,6 +119,10 @@ def _gc_expired_sessions() -> None:
 
 
 def _get_client_ip(req: Request) -> str:
+    # Behind a reverse proxy (FC / Nginx), the real client IP is in X-Forwarded-For
+    forwarded = req.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
     return req.client.host if req.client else "unknown"
 
 
@@ -446,9 +451,9 @@ def ask_tutor(request: AskTutorRequest, req: Request):
         # Append the current question
         messages.append({"role": "user", "content": request.question})
 
-        # Call OpenAI directly (bypass agent tool loop — tutor is a simple Q&A)
+        # Call the LLM directly (bypass agent tool loop — tutor is a simple Q&A)
         completion = agent.client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=LLM_MODEL,
             messages=messages,
             max_tokens=100,
             temperature=0.7,
@@ -515,7 +520,7 @@ Rules:
 - traits should hint at how they'll behave in conversation"""
 
         response = agent.client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.8,
             max_tokens=300,
