@@ -4,19 +4,25 @@ This agent can reason, use tools, and adapt based on results.
 """
 
 import json
+import os
 import re
 from typing import Dict, List, Any, Optional
 from openai import OpenAI
 
 from agent.prompts import get_agent_prompt
-from agent.tools import get_tools
+from agent.tools import get_tools, LLM_MODEL
 
 
 class LanguageLearningAgent:
     """A simple but functional AI agent that uses tools to help with language learning."""
     
     def __init__(self, api_key: str):
-        self.client = OpenAI(api_key=api_key)
+        # OPENAI_BASE_URL lets us point at Qianwen's OpenAI-compatible endpoint
+        # e.g. https://dashscope.aliyuncs.com/compatible-mode/v1
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url=os.getenv("OPENAI_BASE_URL") or None,
+        )
         self.tools = get_tools(self.client)
         self.conversation_history = []
         self.current_exercises = []
@@ -118,7 +124,7 @@ class LanguageLearningAgent:
         """Get response from LLM."""
         
         response = self.client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=LLM_MODEL,
             messages=self.conversation_history,
             temperature=0.7,
             max_tokens=1000
