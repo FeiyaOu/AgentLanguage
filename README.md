@@ -242,7 +242,7 @@ Runs on **http://localhost:5173**
 2. In the [FC console](https://fcnext.console.aliyun.com): create a **Web function** → runtime **Python 3.10** → upload `deploy.zip`.
 3. Start command (dependencies are already bundled, no `pip install` needed):
    ```
-   uvicorn main:app --host 0.0.0.0 --port 9000
+   python3 -m uvicorn main:app --host 0.0.0.0 --port 9000
    ```
 4. Set env vars from the table above.
 5. **Instance settings:** single-instance concurrency `100`, max instances `1` — sessions and rate-limit state live in memory, so multiple instances would lose sessions.
