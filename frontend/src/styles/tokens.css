@@ -1,0 +1,112 @@
+/*
+ * Design tokens
+ *
+ * Three tiers:
+ *   1. Primitive  — raw palette values (--sand-*, --ember-*). Never used by components directly.
+ *   2. Semantic   — what a value means (--color-surface, --color-accent…). Components use only these.
+ *   3. Component  — added sparingly when a component needs its own knob.
+ *
+ * Dark mode swaps the semantic tier only. Colors are stored as RGB channels so
+ * Tailwind can apply opacity modifiers (e.g. bg-accent/10).
+ */
+
+:root {
+  /* ── Primitive: warm neutrals ── */
+  --sand-0: 255 255 255;
+  --sand-50: 250 248 245;
+  --sand-100: 243 240 235;
+  --sand-200: 231 226 218;
+  --sand-300: 212 205 194;
+  --sand-400: 168 160 148;
+  --sand-500: 125 118 107;
+  --sand-600: 94 88 79;
+  --sand-700: 69 64 58;
+  --sand-800: 46 42 38;
+  --sand-850: 35 32 29;
+  --sand-900: 26 24 22;
+  --sand-950: 18 17 16;
+
+  /* ── Primitive: accent (ember) ── */
+  --ember-50: 253 246 241;
+  --ember-100: 251 233 221;
+  --ember-200: 246 207 180;
+  --ember-300: 239 173 132;
+  --ember-400: 231 133 79;
+  --ember-500: 221 106 44;
+  --ember-600: 196 83 28;
+  --ember-700: 161 66 22;
+  --ember-800: 128 54 22;
+  --ember-900: 103 47 22;
+
+  /* ── Semantic: surfaces & text ── */
+  --color-canvas: var(--sand-50);
+  --color-surface: var(--sand-0);
+  --color-sunken: var(--sand-100);
+  --color-raised: var(--sand-0);
+  --color-line: var(--sand-200);
+  --color-line-strong: var(--sand-300);
+  --color-fg: var(--sand-900);
+  --color-muted: var(--sand-600);
+  --color-subtle: var(--sand-500);
+
+  /* ── Semantic: accent ── */
+  --color-accent: var(--ember-600);
+  --color-accent-hover: var(--ember-700);
+  --color-accent-fg: var(--sand-0);
+  --color-accent-soft: var(--ember-50);
+  --color-accent-line: var(--ember-200);
+  --color-accent-text: var(--ember-700);
+  --color-ring: var(--ember-500);
+
+  /* ── Semantic: feedback ── */
+  --color-success: 47 125 79;
+  --color-success-soft: 234 245 238;
+  --color-danger: 192 57 43;
+  --color-danger-soft: 251 236 234;
+  --color-warning: 167 110 24;
+  --color-warning-soft: 253 244 227;
+
+  /* ── Elevation (level 1 is a border, so only levels 2+ are shadows) ── */
+  --color-scrim: rgb(26 24 22 / 0.4);
+  --shadow-raised: 0 1px 2px rgb(26 24 22 / 0.04), 0 4px 12px -4px rgb(26 24 22 / 0.08);
+  --shadow-overlay: 0 2px 6px rgb(26 24 22 / 0.06), 0 16px 40px -12px rgb(26 24 22 / 0.22);
+
+  /* ── Motion (mirrored in src/ui/motion.ts for Motion components) ── */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
+.dark {
+  --color-canvas: var(--sand-950);
+  --color-surface: var(--sand-900);
+  --color-sunken: var(--sand-850);
+  --color-raised: var(--sand-850);
+  --color-line: var(--sand-800);
+  --color-line-strong: var(--sand-700);
+  --color-fg: var(--sand-100);
+  --color-muted: var(--sand-400);
+  --color-subtle: var(--sand-500);
+
+  --color-accent: var(--ember-600);
+  --color-accent-hover: var(--ember-500);
+  --color-accent-fg: var(--sand-0);
+  --color-accent-soft: 45 29 20;
+  --color-accent-line: 90 52 32;
+  --color-accent-text: var(--ember-400);
+  --color-ring: var(--ember-400);
+
+  --color-success: 92 179 127;
+  --color-success-soft: 23 39 29;
+  --color-danger: 224 104 91;
+  --color-danger-soft: 44 23 21;
+  --color-warning: 224 168 74;
+  --color-warning-soft: 42 33 19;
+
+  --color-scrim: rgb(0 0 0 / 0.6);
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px -4px rgb(0 0 0 / 0.4);
+  --shadow-overlay: 0 2px 6px rgb(0 0 0 / 0.3), 0 16px 40px -12px rgb(0 0 0 / 0.6);
+}

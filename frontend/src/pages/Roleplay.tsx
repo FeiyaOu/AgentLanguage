@@ -11,7 +11,8 @@ import {
   XMarkIcon,
   BoltIcon,
   TrophyIcon,
-} from '@heroicons/react/24/outline'; // Updated import path
+} from '@heroicons/react/24/outline';
+import { toast } from '../ui';
 
 export default function Roleplay() {
   const location = useLocation();
@@ -52,7 +53,7 @@ export default function Roleplay() {
 
   useEffect(() => {
     if (!topic) {
-      navigate('/');
+      navigate('/roleplay');
       return;
     }
     initializeRoleplay();
@@ -87,8 +88,8 @@ export default function Roleplay() {
       setChatError(null);
     } catch (error) {
       console.error('Error starting roleplay:', error);
-      alert('Failed to start roleplay. Please try again.');
-      navigate('/');
+      toast.error("Couldn't start the conversation", { description: 'Please try again.' });
+      navigate('/roleplay');
     } finally {
       setLoading(false);
     }
@@ -229,9 +230,9 @@ export default function Roleplay() {
     if (!roleplay) return;
     try {
       await endRoleplay(roleplay.roleplay_id);
-      navigate('/');
+      navigate('/roleplay');
     } catch {
-      navigate('/');
+      navigate('/roleplay');
     }
   };
 

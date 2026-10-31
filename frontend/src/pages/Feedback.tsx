@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import type { ScoreResult, Exercise } from '../types';
 import { askTutor } from '../api';
 
@@ -10,16 +10,24 @@ const MAX_WORDS_PER_MESSAGE = 50;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
+type FeedbackState = {
+  result: ScoreResult;
+  topic: string;
+  difficulty: string;
+  exercises: Exercise[];
+  answers: string[];
+};
+
 export default function Feedback() {
   const location = useLocation();
+  const state = location.state as FeedbackState | null;
+  // Results only exist in router state; after a refresh there is nothing to show.
+  if (!state?.result) return <Navigate to="/practice" replace />;
+  return <FeedbackView {...state} />;
+}
+
+function FeedbackView({ result, topic, difficulty }: FeedbackState) {
   const navigate = useNavigate();
-  const { result, topic, difficulty } = location.state as { 
-    result: ScoreResult; 
-    topic: string;
-    difficulty: string;
-    exercises: Exercise[];
-    answers: string[];
-  };
 
   // --- Tutor chat state ---
   const [tutorOpen, setTutorOpen] = useState(false);
@@ -113,7 +121,7 @@ export default function Feedback() {
     if (result.suggested_exercise_type) {
       focusAreas.push(`preferred style: ${result.suggested_exercise_type}`);
     }
-    navigate('/practice', { state: { topic, difficulty, focusAreas } });
+    navigate('/practice/session', { state: { topic, difficulty, focusAreas } });
   };
 
   const getScoreColor = (percentage: number) => {
@@ -264,7 +272,7 @@ export default function Feedback() {
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/practice')}
             className="btn-secondary"
           >
             <svg className="inline w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
