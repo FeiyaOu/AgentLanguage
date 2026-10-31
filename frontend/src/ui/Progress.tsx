@@ -95,6 +95,8 @@ type ProgressRingProps = {
   strokeWidth?: number;
   className?: string;
   children?: ReactNode;
+  /** Set false when the value is already animated by JS (e.g. a count-up), to avoid a lagging CSS transition. */
+  transition?: boolean;
 };
 
 /** Circular progress; the stroke draws in via stroke-dashoffset. Children render in the center. */
@@ -106,6 +108,7 @@ export function ProgressRing({
   strokeWidth = 8,
   className,
   children,
+  transition = true,
 }: ProgressRingProps) {
   const r = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * r;
@@ -133,7 +136,7 @@ export function ProgressRing({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className={cn('transition-[stroke-dashoffset] duration-slow ease-enter', strokeTone[tone])}
+          className={cn(transition && 'transition-[stroke-dashoffset] duration-slow ease-enter', strokeTone[tone])}
         />
       </svg>
       {children && <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>}

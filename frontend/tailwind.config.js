@@ -1,5 +1,4 @@
 /** @type {import('tailwindcss').Config} */
-import colors from 'tailwindcss/colors';
 
 // Semantic color tokens live in src/styles/tokens.css as RGB channels.
 const token = (name) => `rgb(var(--color-${name}) / <alpha-value>)`;
@@ -13,8 +12,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Legacy alias used by the Feedback page; remove once it is migrated to tokens.
-        primary: colors.orange,
         canvas: token('canvas'),
         surface: token('surface'),
         sunken: token('sunken'),
