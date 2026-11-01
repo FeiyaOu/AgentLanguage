@@ -112,7 +112,7 @@ export function TutorDialog({ item, onClose }: TutorDialogProps) {
                 <div
                   className={cn(
                     'max-w-[85%] whitespace-pre-wrap rounded-card px-3.5 py-2.5 text-body-sm',
-                    msg.role === 'user' ? 'rounded-br-[6px] bg-accent text-accent-fg' : 'rounded-bl-[6px] bg-sunken text-fg',
+                    msg.role === 'user' ? 'rounded-br-[6px] border border-accent-line bg-accent-soft text-fg' : 'rounded-bl-[6px] bg-sunken text-fg',
                   )}
                 >
                   {msg.content}

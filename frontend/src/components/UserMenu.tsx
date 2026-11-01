@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowRightStartOnRectangleIcon, ClockIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
-import { Avatar, Button, Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, Skeleton, toast } from '../ui';
+import { Avatar, Button, Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, Skeleton, cn, toast } from '../ui';
 import { useAuth } from '../auth/AuthContext';
 
 /**
@@ -28,10 +28,14 @@ export function UserMenu() {
   return (
     <Menu>
       <MenuTrigger
-        className="rounded-pill outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        className={cn(
+          'rounded-pill outline-none transition-shadow duration-fast ease-standard',
+          'hover:ring-2 hover:ring-accent-line data-[state=open]:ring-2 data-[state=open]:ring-accent-line',
+          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
+        )}
         aria-label="Account menu"
       >
-        <Avatar name={user.name} size="sm" />
+        <Avatar name={user.name} size="sm" tone="solid" />
       </MenuTrigger>
       <MenuContent>
         <MenuLabel>

@@ -26,17 +26,19 @@
   --sand-900: 26 24 22;
   --sand-950: 18 17 16;
 
-  /* ── Primitive: accent (ember) ── */
-  --ember-50: 253 246 241;
-  --ember-100: 251 233 221;
-  --ember-200: 246 207 180;
-  --ember-300: 239 173 132;
-  --ember-400: 231 133 79;
-  --ember-500: 221 106 44;
-  --ember-600: 196 83 28;
-  --ember-700: 161 66 22;
-  --ember-800: 128 54 22;
-  --ember-900: 103 47 22;
+  /* ── Primitive: accent (ember, a bright orange) ──
+   * 500 is the brand fill. White on it is 3.2:1 (AA for UI components / large text),
+   * so text on light surfaces uses 700 (5:1) via --color-accent-text instead. */
+  --ember-50: 255 245 238;
+  --ember-100: 255 232 217;
+  --ember-200: 255 205 174;
+  --ember-300: 255 171 122;
+  --ember-400: 255 138 76;
+  --ember-500: 242 100 25;
+  --ember-600: 217 83 15;
+  --ember-700: 184 70 15;
+  --ember-800: 143 58 18;
+  --ember-900: 110 49 20;
 
   /* ── Semantic: surfaces & text ── */
   --color-canvas: var(--sand-50);
@@ -50,13 +52,13 @@
   --color-subtle: var(--sand-500);
 
   /* ── Semantic: accent ── */
-  --color-accent: var(--ember-600);
-  --color-accent-hover: var(--ember-700);
+  --color-accent: var(--ember-500);
+  --color-accent-hover: var(--ember-600);
   --color-accent-fg: var(--sand-0);
   --color-accent-soft: var(--ember-50);
   --color-accent-line: var(--ember-200);
   --color-accent-text: var(--ember-700);
-  --color-ring: var(--ember-500);
+  --color-ring: var(--ember-400);
 
   /* ── Semantic: feedback ── */
   --color-success: 47 125 79;
@@ -91,11 +93,11 @@
   --color-muted: var(--sand-400);
   --color-subtle: var(--sand-500);
 
-  --color-accent: var(--ember-600);
-  --color-accent-hover: var(--ember-500);
+  --color-accent: var(--ember-500);
+  --color-accent-hover: var(--ember-400);
   --color-accent-fg: var(--sand-0);
-  --color-accent-soft: 45 29 20;
-  --color-accent-line: 90 52 32;
+  --color-accent-soft: 56 31 17;
+  --color-accent-line: 112 56 26;
   --color-accent-text: var(--ember-400);
   --color-ring: var(--ember-400);
 

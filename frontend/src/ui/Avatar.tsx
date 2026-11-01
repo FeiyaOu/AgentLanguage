@@ -2,7 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from './cn';
 
 const avatarVariants = cva(
-  'inline-flex shrink-0 items-center justify-center rounded-pill bg-accent-soft ring-1 ring-inset ring-accent-line/70 text-accent-text font-semibold select-none overflow-hidden',
+  'inline-flex shrink-0 items-center justify-center rounded-pill font-semibold select-none overflow-hidden',
   {
     variants: {
       size: {
@@ -10,9 +10,16 @@ const avatarVariants = cva(
         md: 'size-10 text-body-sm',
         lg: 'size-14 text-heading',
       },
+      tone: {
+        /** Light tint: lets a persona's emoji read clearly. */
+        soft: 'bg-accent-soft ring-1 ring-inset ring-accent-line/70 text-accent-text',
+        /** Brand fill: the signed-in user's own avatar. */
+        solid: 'bg-accent text-accent-fg',
+      },
     },
     defaultVariants: {
       size: 'md',
+      tone: 'soft',
     },
   },
 );
@@ -31,9 +38,9 @@ function initials(name: string) {
   return (parts[0]?.[0] ?? '?').toUpperCase() + (parts.length > 1 ? parts[parts.length - 1][0].toUpperCase() : '');
 }
 
-export function Avatar({ name, emoji, src, size, className }: AvatarProps) {
+export function Avatar({ name, emoji, src, size, tone, className }: AvatarProps) {
   return (
-    <span className={cn(avatarVariants({ size }), className)} role="img" aria-label={name}>
+    <span className={cn(avatarVariants({ size, tone }), className)} role="img" aria-label={name}>
       {src ? (
         <img src={src} alt="" className="size-full object-cover" />
       ) : emoji ? (

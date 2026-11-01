@@ -49,7 +49,7 @@ export function MessageList({ messages, personaName, personaEmoji, typing }: Mes
               <div
                 className={cn(
                   'flex max-w-[90%] items-start gap-2 rounded-card px-3.5 py-2 text-body-sm',
-                  msg.type === 'coach' ? 'bg-accent-soft text-fg' : 'bg-sunken text-muted',
+                  msg.type === 'coach' ? 'border border-accent-line bg-surface text-fg' : 'bg-sunken text-muted',
                 )}
               >
                 {msg.type === 'coach' && <SparklesIcon className="mt-0.5 size-4 shrink-0 text-accent-text" aria-hidden />}
@@ -76,7 +76,7 @@ export function MessageList({ messages, personaName, personaEmoji, typing }: Mes
               className={cn(
                 'max-w-[80%] whitespace-pre-wrap rounded-card px-4 py-2.5 text-body',
                 isUser
-                  ? 'rounded-br-[6px] bg-accent text-accent-fg'
+                  ? 'rounded-br-[6px] border border-accent-line bg-accent-soft text-fg'
                   : 'rounded-bl-[6px] border border-line bg-surface text-fg',
               )}
             >

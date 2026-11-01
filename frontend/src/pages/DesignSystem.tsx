@@ -323,11 +323,16 @@ export default function DesignSystem() {
         </div>
       </Section>
 
-      <Section title="Avatar" description="Initials, or a persona's emoji.">
+      <Section title="Avatar" description="Solid for the signed-in user, soft (tinted) for initials or a persona's emoji.">
         <Row label="Sizes">
           <Avatar name="Sophie Ou" size="sm" />
           <Avatar name="Sophie Ou" />
           <Avatar name="Sophie Ou" size="lg" />
+        </Row>
+        <Row label="User (solid)">
+          <Avatar name="Sophie Ou" size="sm" tone="solid" />
+          <Avatar name="Sophie Ou" tone="solid" />
+          <Avatar name="Sophie Ou" size="lg" tone="solid" />
         </Row>
         <Row label="Persona">
           <Avatar name="Marco the waiter" emoji="🧑‍🍳" />
