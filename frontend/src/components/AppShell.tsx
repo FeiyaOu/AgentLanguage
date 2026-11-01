@@ -18,12 +18,16 @@ export function AppShell() {
     <div className="min-h-screen flex flex-col">
       <TopNav />
       <main className="flex-1 pb-24 md:pb-0">
-        {/* Enter-only transition: no exit delay, so navigation always feels instant. */}
+        {/*
+          Enter-only and never from transparent: the old page is removed at once, so
+          starting the new one at opacity 0 left a near-empty frame that read as a flash.
+          It is visible from its first frame and only settles into place.
+        */}
         <motion.div
           key={pathname}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0.85, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: duration.base, ease: ease.enter }}
+          transition={{ duration: duration.base, ease: ease.standard }}
         >
           <Outlet />
         </motion.div>

@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import type { LottieHandle } from 'lottie-react';
 import { cn } from './cn';
-import { useColorScheme } from './useColorScheme';
 
 // lottie-web is large; load it only when an animation is actually shown.
 // The light build suffices: our animations use no expressions. Destructuring lets the
@@ -11,35 +10,30 @@ const Lottie = lazy(() => import('lottie-react').then(({ LottieLight }) => ({ de
 
 /**
  * Fills and strokes in our animation files are *named* after design tokens
- * (e.g. "accent"); their colors are swapped in at runtime so animations follow
- * the active theme instead of baking colors into the file.
+ * (e.g. "accent"). Each name is swapped for a unique placeholder color, and CSS
+ * in index.css (`.themed-lottie [fill="rgb(255,0,1)"]` …) paints it with the token.
+ * A theme change is then a pure CSS update: the animation never reloads or restarts.
+ * Keep the blue channel here in sync with those CSS rules.
  */
-const TOKEN_FOR_NAME: Record<string, string> = {
-  accent: '--color-accent',
-  accentSoft: '--color-accent-soft',
-  onAccent: '--color-accent-fg',
-  surface: '--color-surface',
-  line: '--color-line-strong',
-  muted: '--color-line-strong',
+const PLACEHOLDER_BLUE: Record<string, number> = {
+  accent: 1,
+  accentSoft: 2,
+  onAccent: 3,
+  surface: 4,
+  line: 5,
+  muted: 6,
 };
 
 type LottieNode = { ty?: string; nm?: string; c?: { k: number[] }; [key: string]: unknown };
 
-function readToken(name: string): number[] | null {
-  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  const parts = raw.split(/\s+/).map(Number);
-  return parts.length === 3 && parts.every((n) => !Number.isNaN(n)) ? [...parts.map((n) => n / 255), 1] : null;
-}
-
-function applyTokens<T>(data: T): T {
+function applyPlaceholders<T>(data: T): T {
   const copy = structuredClone(data);
   const walk = (node: unknown) => {
     if (Array.isArray(node)) return node.forEach(walk);
     if (!node || typeof node !== 'object') return;
     const n = node as LottieNode;
-    if ((n.ty === 'fl' || n.ty === 'st') && n.nm && TOKEN_FOR_NAME[n.nm] && n.c) {
-      const rgba = readToken(TOKEN_FOR_NAME[n.nm]);
-      if (rgba) n.c.k = rgba;
+    if ((n.ty === 'fl' || n.ty === 'st') && n.nm && PLACEHOLDER_BLUE[n.nm] && n.c) {
+      n.c.k = [1, 0, PLACEHOLDER_BLUE[n.nm] / 255, 1];
     }
     Object.values(n).forEach(walk);
   };
@@ -71,12 +65,10 @@ export function ThemedLottie({
   reducedMotionFrame,
   className,
 }: ThemedLottieProps) {
-  const scheme = useColorScheme();
   const reduceMotion = useReducedMotion();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const lottieRef = useRef<LottieHandle>(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read token colors when the theme changes
-  const themed = useMemo(() => applyTokens(animationData), [animationData, scheme]);
+  const themed = useMemo(() => applyPlaceholders(animationData), [animationData]);
 
   useEffect(() => {
     const el = wrapperRef.current;
@@ -96,7 +88,7 @@ export function ThemedLottie({
   return (
     <div
       ref={wrapperRef}
-      className={cn('pointer-events-none', className)}
+      className={cn('themed-lottie pointer-events-none', className)}
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}

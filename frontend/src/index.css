@@ -12,6 +12,12 @@
     animation: none !important;
   }
 
+  /* Reserve the scrollbar's space on every page, so moving between short and
+     long pages doesn't shift the layout sideways where scrollbars are always shown. */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-canvas text-fg font-sans antialiased min-h-screen overflow-x-hidden;
   }
@@ -20,3 +26,22 @@
     @apply bg-accent/20;
   }
 }
+
+/*
+ * Lottie theming (see src/ui/ThemedLottie.tsx): each token-named color in an
+ * animation is replaced by a placeholder, painted here from the live token.
+ * CSS properties beat SVG presentation attributes, and a theme switch recolors
+ * without reloading or restarting the animation.
+ */
+.themed-lottie [fill='rgb(255,0,1)'] { fill: rgb(var(--color-accent)); }
+.themed-lottie [stroke='rgb(255,0,1)'] { stroke: rgb(var(--color-accent)); }
+.themed-lottie [fill='rgb(255,0,2)'] { fill: rgb(var(--color-accent-soft)); }
+.themed-lottie [stroke='rgb(255,0,2)'] { stroke: rgb(var(--color-accent-soft)); }
+.themed-lottie [fill='rgb(255,0,3)'] { fill: rgb(var(--color-accent-fg)); }
+.themed-lottie [stroke='rgb(255,0,3)'] { stroke: rgb(var(--color-accent-fg)); }
+.themed-lottie [fill='rgb(255,0,4)'] { fill: rgb(var(--color-surface)); }
+.themed-lottie [stroke='rgb(255,0,4)'] { stroke: rgb(var(--color-surface)); }
+.themed-lottie [fill='rgb(255,0,5)'] { fill: rgb(var(--color-line-strong)); }
+.themed-lottie [stroke='rgb(255,0,5)'] { stroke: rgb(var(--color-line-strong)); }
+.themed-lottie [fill='rgb(255,0,6)'] { fill: rgb(var(--color-line-strong)); }
+.themed-lottie [stroke='rgb(255,0,6)'] { stroke: rgb(var(--color-line-strong)); }

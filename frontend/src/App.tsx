@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MotionConfig } from 'framer-motion';
 import { AuthProvider } from './auth/AuthProvider';
 import { AppShell } from './components/AppShell';
-import { FocusTransition } from './components/FocusTransition';
 import Home from './pages/Home';
 import PracticeSetup from './pages/PracticeSetup';
 import Practice from './pages/Practice';
@@ -12,11 +11,22 @@ import RoleplaySetup from './pages/RoleplaySetup';
 import Roleplay from './pages/Roleplay';
 import History from './pages/History';
 import HistoryDetail from './pages/HistoryDetail';
-import { Toaster } from './ui';
+import { Skeleton, SkeletonText, Toaster } from './ui';
 import './index.css';
 
 // Internal style guide; kept out of the main bundle.
 const DesignSystem = lazy(() => import('./pages/DesignSystem'));
+
+/** Holds the page's shape while its chunk loads, instead of an empty screen. */
+function PageSkeleton() {
+  return (
+    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-12" aria-busy>
+      <Skeleton className="h-6 w-28 rounded-pill" />
+      <Skeleton className="mt-4 h-10 w-72" />
+      <SkeletonText lines={2} className="mt-4 max-w-2xl" />
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -36,7 +46,7 @@ function App() {
               <Route
                 path="/design-system"
                 element={
-                  <Suspense fallback={null}>
+                  <Suspense fallback={<PageSkeleton />}>
                     <DesignSystem />
                   </Suspense>
                 }
@@ -44,22 +54,8 @@ function App() {
             </Route>
 
             {/* Focus mode: an active session, no global navigation */}
-            <Route
-              path="/practice/session"
-              element={
-                <FocusTransition>
-                  <Practice />
-                </FocusTransition>
-              }
-            />
-            <Route
-              path="/roleplay/session"
-              element={
-                <FocusTransition>
-                  <Roleplay />
-                </FocusTransition>
-              }
-            />
+            <Route path="/practice/session" element={<Practice />} />
+            <Route path="/roleplay/session" element={<Roleplay />} />
           </Routes>
           <Toaster />
         </AuthProvider>

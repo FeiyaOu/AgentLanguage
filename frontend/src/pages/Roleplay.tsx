@@ -214,43 +214,19 @@ function RoleplaySession({ topic, difficulty, personaType, customDescription, pe
   };
 
   const avatar = <Avatar name={name} emoji={personaEmoji} size="sm" />;
-
-  if (starting && !roleplay) {
-    return (
-      <>
-        <FocusHeader title="Preparing conversation" subtitle={topic} onExit={() => navigate('/roleplay')} confirmExit={false} />
-        <BriefingSkeleton />
-      </>
-    );
-  }
-
-  if (!roleplay) return null;
-
-  if (showBriefing) {
-    return (
-      <>
-        <FocusHeader leading={avatar} title={name} subtitle={topic} onExit={leave} confirmExit={false} />
-        <Briefing
-          personaName={name}
-          personaEmoji={personaEmoji}
-          topic={topic}
-          difficulty={difficulty}
-          goal={roleplay.user_goal}
-          scene={roleplay.scene_context}
-          maxTurns={maxTurns}
-          maxHints={MAX_HINTS}
-          onStart={startConversation}
-        />
-      </>
-    );
-  }
-
   const hintsLeft = MAX_HINTS - hintCount;
   const progressTone = achieved || goalStatus === 'achieved' ? 'success' : goalStatus === 'off_track' ? 'warning' : 'accent';
   const wordCount = input.trim() ? input.trim().split(/\s+/).length : 0;
+  const phase = !roleplay ? 'starting' : showBriefing ? 'briefing' : 'chat';
 
-  return (
-    <div className="flex h-dvh flex-col">
+  // One header instance across all phases: only its props change, so it never
+  // remounts (a remount would replay its entrance animation and flash).
+  const header =
+    phase === 'starting' ? (
+      <FocusHeader title="Preparing conversation" subtitle={topic} onExit={() => navigate('/roleplay')} confirmExit={false} />
+    ) : phase === 'briefing' ? (
+      <FocusHeader leading={avatar} title={name} subtitle={topic} onExit={leave} confirmExit={false} />
+    ) : (
       <FocusHeader
         leading={avatar}
         title={name}
@@ -288,78 +264,103 @@ function RoleplaySession({ topic, difficulty, personaType, customDescription, pe
         exitTitle="Leave this conversation?"
         exitDescription="The conversation will end and won't be saved."
       />
+    );
 
-      {/* On small screens the header has no room for progress, so it sits here. */}
-      <div className="border-b border-line bg-surface px-4 py-2 sm:hidden">
-        <div className="flex items-center gap-3">
-          <ProgressBar value={goalProgress} label="Mission progress" tone={progressTone} />
-          <span className={cn('shrink-0 text-caption tabular-nums', turnsRemaining <= 2 ? 'text-warning' : 'text-muted')}>
-            {turnsRemaining} left
-          </span>
-        </div>
-      </div>
+  return (
+    <div className={cn(phase === 'chat' && 'flex h-dvh flex-col')}>
+      {header}
 
-      <MissionStrip goal={roleplay.user_goal} scene={roleplay.scene_context} />
+      {phase === 'starting' && <BriefingSkeleton />}
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
-          <MessageList messages={messages} personaName={name} personaEmoji={personaEmoji} typing={sending} />
-          <div ref={bottomRef} />
-        </div>
-      </div>
+      {phase === 'briefing' && roleplay && (
+        <Briefing
+          personaName={name}
+          personaEmoji={personaEmoji}
+          topic={topic}
+          difficulty={difficulty}
+          goal={roleplay.user_goal}
+          scene={roleplay.scene_context}
+          maxTurns={maxTurns}
+          maxHints={MAX_HINTS}
+          onStart={startConversation}
+        />
+      )}
 
-      <div className="border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto max-w-2xl px-4 py-3 sm:px-6">
-          {chatError && (
-            <p className="mb-2 rounded-control bg-danger-soft px-3 py-2 text-body-sm text-danger" role="alert">
-              {chatError}
-            </p>
-          )}
-          <form onSubmit={send} className="flex items-center gap-2">
-            <label htmlFor="roleplay-input" className="sr-only">
-              Your message
-            </label>
-            <input
-              id="roleplay-input"
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={ended ? 'Conversation finished' : `Reply to ${name}…`}
-              disabled={sending || ended}
-              autoComplete="off"
-              className={cn(
-                'h-11 min-w-0 flex-1 rounded-pill border border-line bg-canvas px-4 text-body text-fg placeholder:text-subtle outline-none',
-                'transition-[border-color,box-shadow] duration-fast focus:border-accent focus:ring-4 focus:ring-ring/15',
-                'disabled:cursor-not-allowed disabled:opacity-60',
+      {phase === 'chat' && roleplay && (
+        <>
+          {/* On small screens the header has no room for progress, so it sits here. */}
+          <div className="border-b border-line bg-surface px-4 py-2 sm:hidden">
+            <div className="flex items-center gap-3">
+              <ProgressBar value={goalProgress} label="Mission progress" tone={progressTone} />
+              <span className={cn('shrink-0 text-caption tabular-nums', turnsRemaining <= 2 ? 'text-warning' : 'text-muted')}>
+                {turnsRemaining} left
+              </span>
+            </div>
+          </div>
+
+          <MissionStrip goal={roleplay.user_goal} scene={roleplay.scene_context} />
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+              <MessageList messages={messages} personaName={name} personaEmoji={personaEmoji} typing={sending} />
+              <div ref={bottomRef} />
+            </div>
+          </div>
+
+          <div className="border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
+            <div className="mx-auto max-w-2xl px-4 py-3 sm:px-6">
+              {chatError && (
+                <p className="mb-2 rounded-control bg-danger-soft px-3 py-2 text-body-sm text-danger" role="alert">
+                  {chatError}
+                </p>
               )}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              aria-label="Send"
-              disabled={!input.trim() || sending || ended}
-              className="size-11"
-            >
-              <PaperAirplaneIcon className="size-5" />
-            </Button>
-          </form>
-          {wordCount > MAX_MSG_WORDS * 0.8 && (
-            <p className={cn('mt-1.5 text-right text-caption tabular-nums', wordCount > MAX_MSG_WORDS ? 'text-danger' : 'text-muted')}>
-              {wordCount}/{MAX_MSG_WORDS} words
-            </p>
-          )}
-        </div>
-      </div>
+              <form onSubmit={send} className="flex items-center gap-2">
+                <label htmlFor="roleplay-input" className="sr-only">
+                  Your message
+                </label>
+                <input
+                  id="roleplay-input"
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={ended ? 'Conversation finished' : `Reply to ${name}…`}
+                  disabled={sending || ended}
+                  autoComplete="off"
+                  className={cn(
+                    'h-11 min-w-0 flex-1 rounded-pill border border-line bg-canvas px-4 text-body text-fg placeholder:text-subtle outline-none',
+                    'transition-[border-color,box-shadow] duration-fast focus:border-accent focus:ring-4 focus:ring-ring/15',
+                    'disabled:cursor-not-allowed disabled:opacity-60',
+                  )}
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  aria-label="Send"
+                  disabled={!input.trim() || sending || ended}
+                  className="size-11"
+                >
+                  <PaperAirplaneIcon className="size-5" />
+                </Button>
+              </form>
+              {wordCount > MAX_MSG_WORDS * 0.8 && (
+                <p className={cn('mt-1.5 text-right text-caption tabular-nums', wordCount > MAX_MSG_WORDS ? 'text-danger' : 'text-muted')}>
+                  {wordCount}/{MAX_MSG_WORDS} words
+                </p>
+              )}
+            </div>
+          </div>
 
-      <CoachDialog feedback={coachFeedback} hintsLeft={hintsLeft} onClose={closeCoach} />
-      <EndDialog
-        open={endOpen}
-        achieved={achieved || goalStatus === 'achieved'}
-        progress={goalProgress}
-        replaying={starting}
-        onReplay={replay}
-        onFinish={leave}
-      />
+          <CoachDialog feedback={coachFeedback} hintsLeft={hintsLeft} onClose={closeCoach} />
+          <EndDialog
+            open={endOpen}
+            achieved={achieved || goalStatus === 'achieved'}
+            progress={goalProgress}
+            replaying={starting}
+            onReplay={replay}
+            onFinish={leave}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { AuthContext, type AuthStatus, type User } from './AuthContext';
 import { LoginDialog } from '../components/LoginDialog';
 import { toast } from '../ui';
 
 /*
  * Mock authentication: no backend yet, so the "account" lives in localStorage.
- * Delays stand in for real network round-trips so the UI's loading states
- * (session check skeleton, button spinner) behave as they will with a real API.
+ * The session is read synchronously on first render, so pages never render as a
+ * guest and then switch (that switch read as a flash). The 'loading' status and
+ * its skeletons stay in place for a real, asynchronous session check later.
+ * Login keeps a short delay so its button state behaves as it will with an API.
  */
 
 const STORAGE_KEY = 'agentlanguage.user';
-const SESSION_CHECK_MS = 450;
 const LOGIN_MS = 700;
 
 function readStoredUser(): User | null {
@@ -29,18 +30,9 @@ function nameFromEmail(email: string) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<AuthStatus>('loading');
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(readStoredUser);
+  const [status, setStatus] = useState<AuthStatus>(() => (user ? 'authenticated' : 'guest'));
   const [loginOpen, setLoginOpen] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const stored = readStoredUser();
-      setUser(stored);
-      setStatus(stored ? 'authenticated' : 'guest');
-    }, SESSION_CHECK_MS);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Mock: any password is accepted, so it isn't read here.
   const login = useCallback(async (email: string) => {

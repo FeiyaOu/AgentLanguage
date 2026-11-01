@@ -91,6 +91,8 @@ export default {
           to: { opacity: '0', transform: 'scale(0.98)' },
         },
         shimmer: { to: { transform: 'translateX(100%)' } },
+        'loading-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'loading-out': { from: { opacity: '1' }, to: { opacity: '0' } },
       },
       animation: {
         'fade-in': 'fade-in var(--duration-base) var(--ease-standard)',
@@ -100,6 +102,9 @@ export default {
         'menu-in': 'menu-in var(--duration-fast) var(--ease-enter)',
         'menu-out': 'menu-out var(--duration-fast) var(--ease-exit)',
         shimmer: 'shimmer 1.6s var(--ease-standard) infinite',
+        // Loading feedback waits 300ms (see Button): fast requests show no spinner at all.
+        'loading-in': 'loading-in var(--duration-fast) var(--ease-standard) 300ms both',
+        'loading-out': 'loading-out var(--duration-fast) var(--ease-standard) 300ms both',
       },
     },
   },

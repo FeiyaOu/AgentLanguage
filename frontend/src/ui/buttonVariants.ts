@@ -2,7 +2,8 @@ import { cva } from 'class-variance-authority';
 
 /**
  * States: default · hover · active (pressed) · focus-visible · disabled · loading.
- * Loading keeps the button's width (content is hidden, not removed) so layout never jumps.
+ * Loading keeps the button's width (content is hidden, not removed) so layout never jumps,
+ * and does not use the disabled look: a button that dims the instant it's clicked flashes.
  */
 export const buttonVariants = cva(
   [
@@ -10,7 +11,7 @@ export const buttonVariants = cva(
     'transition-[background-color,border-color,color,transform] duration-fast ease-standard',
     'active:scale-[0.98] motion-reduce:active:scale-100',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
-    'disabled:pointer-events-none disabled:opacity-45',
+    'disabled:pointer-events-none [&:disabled:not([aria-busy=true])]:opacity-45',
   ],
   {
     variants: {

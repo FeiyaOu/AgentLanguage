@@ -28,9 +28,14 @@ export function Button({
       aria-busy={loading || undefined}
       {...props}
     >
-      <span className={cn('inline-flex items-center gap-2', loading && 'invisible')}>{children}</span>
+      {/*
+        The swap to a spinner is a CSS animation delayed by 300ms: a quick request
+        finishes before anything changes, so the label never blinks. Slow ones show
+        the spinner. When loading ends, both snap back with no state to clean up.
+      */}
+      <span className={cn('inline-flex items-center gap-2', loading && 'animate-loading-out')}>{children}</span>
       {loading && (
-        <span className="absolute inset-0 flex items-center justify-center">
+        <span className="absolute inset-0 flex animate-loading-in items-center justify-center">
           <Spinner className="size-4" />
         </span>
       )}
