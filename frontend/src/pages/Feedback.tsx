@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowPathIcon, BookmarkIcon, LightBulbIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, BookmarkIcon, CheckCircleIcon, LightBulbIcon } from '@heroicons/react/24/outline';
 import type { ScoreResult, Exercise } from '../types';
 import { useAuth } from '../auth/AuthContext';
-import { Badge, Button, Card, buttonVariants } from '../ui';
+import { Badge, Button, Card, buttonVariants, toast } from '../ui';
+import { saveRecord } from '../history/store';
 import { isCorrect } from '../practice/grade';
 import { ScoreSummary } from '../results/ScoreSummary';
 import { ReviewList, type ReviewItem } from '../results/ReviewList';
@@ -60,14 +61,44 @@ function buildReview(result: ScoreResult, exercises: Exercise[], answers: string
 
 function FeedbackView({ result, topic, difficulty, exercises, answers }: FeedbackState) {
   const navigate = useNavigate();
-  const { status, openLogin } = useAuth();
+  const { status, user, openLogin } = useAuth();
   const [tutorItem, setTutorItem] = useState<ReviewItem | null>(null);
+  // One id per result, so saving is idempotent (StrictMode, re-renders, login).
+  const [recordId] = useState(() => crypto.randomUUID());
+  const [createdAt] = useState(() => Date.now());
+  const saved = useRef(false);
+  const sawGuest = useRef(false);
 
   const review = useMemo(() => buildReview(result, exercises, answers), [result, exercises, answers]);
   const correctCount = review.filter((r) => r.correct).length;
   const total = review.length || 1;
   const percentage = review.length ? Math.round((correctCount / total) * 100) : result.score_percentage;
-  const weakAreas = result.weak_areas ?? [];
+  const weakAreas = useMemo(() => result.weak_areas ?? [], [result.weak_areas]);
+
+  // Save for signed-in users. A guest who logs in on this page "claims" the result.
+  useEffect(() => {
+    if (status === 'guest') sawGuest.current = true;
+    if (status !== 'authenticated' || !user || saved.current) return;
+    saved.current = true;
+    saveRecord(user.email, {
+      id: recordId,
+      topic,
+      difficulty,
+      createdAt,
+      correct: correctCount,
+      total: review.length,
+      weakAreas,
+      recommendations: result.recommendations,
+      exercises: exercises ?? [],
+      answers: answers ?? [],
+      review,
+    });
+    if (sawGuest.current) {
+      toast.success('Saved to your history', {
+        action: { label: 'View', onClick: () => navigate(`/history/${recordId}`) },
+      });
+    }
+  }, [status, user, recordId, createdAt, topic, difficulty, correctCount, review, weakAreas, result.recommendations, exercises, answers, navigate]);
 
   const practiseWeakAreas = () => {
     const focusAreas = [...weakAreas];
@@ -95,6 +126,16 @@ function FeedbackView({ result, topic, difficulty, exercises, answers }: Feedbac
           </>
         }
       />
+
+      {status === 'authenticated' && (
+        <div className="flex items-center gap-2 px-1 text-body-sm text-muted">
+          <CheckCircleIcon className="size-5 text-success" aria-hidden />
+          <span>Saved to your history.</span>
+          <Link to={`/history/${recordId}`} className="font-medium text-accent-text hover:underline">
+            View
+          </Link>
+        </div>
+      )}
 
       {status === 'guest' && (
         <div className="flex flex-col gap-3 rounded-card border border-dashed border-line-strong px-5 py-4 sm:flex-row sm:items-center">

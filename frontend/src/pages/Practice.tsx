@@ -16,6 +16,8 @@ type PracticeState = {
   topic: string;
   difficulty: string;
   focusAreas?: string[];
+  /** Ready-made questions (e.g. a mistakes review); skips generation. */
+  exercises?: Exercise[];
 };
 
 function shuffle<T>(items: T[]): T[] {
@@ -35,6 +37,9 @@ function buildBoard(exercise: Exercise): ReorderBoard {
   return { available: words.map((text, id) => ({ id, text })), selected: [] };
 }
 
+const boardsFor = (exercises: Exercise[]): Record<number, ReorderBoard> =>
+  Object.fromEntries(exercises.flatMap((ex, i) => (ex.type === 'sentence_reordering' ? [[i, buildBoard(ex)]] : [])));
+
 export default function Practice() {
   const location = useLocation();
   const state = location.state as PracticeState | null;
@@ -43,15 +48,15 @@ export default function Practice() {
   return <PracticeSession {...state} />;
 }
 
-function PracticeSession({ topic, difficulty, focusAreas }: PracticeState) {
+function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }: PracticeState) {
   const navigate = useNavigate();
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [generating, setGenerating] = useState(true);
+  const [exercises, setExercises] = useState<Exercise[]>(provided ?? []);
+  const [generating, setGenerating] = useState(!provided?.length);
   const [loadError, setLoadError] = useState(false);
   const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<string[]>([]);
-  const [verdicts, setVerdicts] = useState<(boolean | null)[]>([]);
-  const [boards, setBoards] = useState<Record<number, ReorderBoard>>({});
+  const [answers, setAnswers] = useState<string[]>(() => (provided ?? []).map(() => ''));
+  const [verdicts, setVerdicts] = useState<(boolean | null)[]>(() => (provided ?? []).map(() => null));
+  const [boards, setBoards] = useState<Record<number, ReorderBoard>>(() => boardsFor(provided ?? []));
   const [submitting, setSubmitting] = useState(false);
   const shake = useAnimationControls();
   const questionRef = useRef<HTMLDivElement>(null);
@@ -64,11 +69,7 @@ function PracticeSession({ topic, difficulty, focusAreas }: PracticeState) {
         setExercises(exercises);
         setAnswers(exercises.map(() => ''));
         setVerdicts(exercises.map(() => null));
-        setBoards(
-          Object.fromEntries(
-            exercises.flatMap((ex, i) => (ex.type === 'sentence_reordering' ? [[i, buildBoard(ex)]] : [])),
-          ),
-        );
+        setBoards(boardsFor(exercises));
         setIndex(0);
       })
       .catch(() => setLoadError(true))
@@ -77,10 +78,10 @@ function PracticeSession({ topic, difficulty, focusAreas }: PracticeState) {
 
   useEffect(() => {
     // Guard against StrictMode's double effect, which would generate twice.
-    if (fetched.current) return;
+    if (fetched.current || provided?.length) return;
     fetched.current = true;
     fetchExercises();
-  }, [fetchExercises]);
+  }, [fetchExercises, provided]);
 
   const retry = () => {
     setGenerating(true);

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { animate, useReducedMotion } from 'framer-motion';
-import { Card, ProgressRing, ease } from '../ui';
+import { Card, ProgressRing, celebrate, ease } from '../ui';
 
 const TIERS = [
   { min: 80, title: 'Excellent work', body: (topic: string) => `You've got a solid handle on ${topic}.`, tone: 'success' },
@@ -29,6 +29,9 @@ export function ScoreSummary({ percentage, correct, total, topic, difficulty, ac
       ease: ease.enter,
       delay: reduceMotion ? 0 : 0.15,
       onUpdate: (v) => setShown(v),
+      onComplete: () => {
+        if (percentage >= 80) void celebrate();
+      },
     });
     return () => controls.stop();
   }, [percentage, reduceMotion]);

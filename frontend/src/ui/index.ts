@@ -21,3 +21,6 @@ export { Spinner } from './Spinner';
 export { EmptyState } from './EmptyState';
 export { Menu, MenuTrigger, MenuContent, MenuItem, MenuLabel, MenuSeparator } from './Menu';
 export { SegmentedControl } from './SegmentedControl';
+export { ThemedLottie } from './ThemedLottie';
+export { useColorScheme } from './useColorScheme';
+export { celebrate } from './celebrate';

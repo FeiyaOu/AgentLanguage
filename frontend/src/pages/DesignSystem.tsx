@@ -22,8 +22,12 @@ import {
   Spinner,
   Textarea,
   toast,
+  ThemedLottie,
+  celebrate,
   type SegmentState,
 } from '../ui';
+import { AnimatedMark } from '../practice/AnimatedMark';
+import { WRITING_DRAWN_FRAME, successAnimation, writingAnimation } from '../content/animations';
 
 /** Live style guide: every token and component state in one place. */
 
@@ -77,6 +81,7 @@ export default function DesignSystem() {
   const [motionPlayed, setMotionPlayed] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState('Job interview');
   const [loading, setLoading] = useState(false);
+  const [replay, setReplay] = useState(0);
   const segments: SegmentState[] = ['correct', 'incorrect', 'correct', 'current', 'upcoming'];
 
   const fakeSubmit = () => {
@@ -156,6 +161,56 @@ export default function DesignSystem() {
           ))}
           <Button variant="secondary" size="sm" onClick={() => setMotionPlayed((p) => !p)}>
             Play
+          </Button>
+        </div>
+      </Section>
+
+      <Section
+        title="Motion in use"
+        description="Each animation answers a question for the learner: did my action work, where am I, where did this come from. Everything respects prefers-reduced-motion."
+      >
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card className="flex flex-col items-center gap-3 text-center">
+            <ThemedLottie key={`s-${replay}`} animationData={successAnimation} label="Success animation" className="size-28" />
+            <div>
+              <div className="text-label text-fg">Lottie · success</div>
+              <div className="text-caption text-muted">Mission complete. Plays once.</div>
+            </div>
+          </Card>
+          <Card className="flex flex-col items-center gap-3 text-center">
+            <ThemedLottie
+              animationData={writingAnimation}
+              loop
+              reducedMotionFrame={WRITING_DRAWN_FRAME}
+              label="Writing animation"
+              className="size-28"
+            />
+            <div>
+              <div className="text-label text-fg">Lottie · writing</div>
+              <div className="text-caption text-muted">Generating questions. Loops, pauses off-screen.</div>
+            </div>
+          </Card>
+          <Card className="flex flex-col items-center justify-center gap-4 text-center">
+            <div className="flex gap-3" key={`m-${replay}`}>
+              <AnimatedMark correct />
+              <AnimatedMark correct={false} />
+            </div>
+            <div>
+              <div className="text-label text-fg">Answer feedback</div>
+              <div className="text-caption text-muted">SVG paths draw in via pathLength.</div>
+            </div>
+          </Card>
+        </div>
+        <p className="mt-4 text-caption text-muted">
+          Lottie fills and strokes are named after tokens (accent, surface…) and recolored at runtime, so the same file
+          follows light and dark themes.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setReplay((r) => r + 1)}>
+            Replay
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => void celebrate()}>
+            Celebrate
           </Button>
         </div>
       </Section>

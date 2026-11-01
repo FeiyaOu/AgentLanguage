@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
+import { motion } from 'framer-motion';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { Button, Dialog, DialogClose, DialogContent } from '../ui';
+import { Button, Dialog, DialogClose, DialogContent, duration, ease } from '../ui';
 
 type FocusHeaderProps = {
   /** Shown before the title, e.g. the conversation partner's avatar. */
@@ -38,7 +39,12 @@ export function FocusHeader({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-md">
+    <motion.header
+      initial={{ y: -16, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: duration.slow, ease: ease.enter }}
+      className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-md"
+    >
       <div className="mx-auto flex h-16 max-w-2xl items-center gap-3 px-4 sm:gap-4 sm:px-6">
         <Button
           variant="ghost"
@@ -81,6 +87,6 @@ export function FocusHeader({
           </div>
         </DialogContent>
       </Dialog>
-    </header>
+    </motion.header>
   );
 }

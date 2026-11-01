@@ -1,9 +1,11 @@
-import { Link } from 'react-router-dom';
-import { ArrowRightIcon, ChatBubbleLeftRightIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowPathIcon, ArrowRightIcon, ChatBubbleLeftRightIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import type { ComponentType, SVGProps } from 'react';
 import { Button, Card, buttonVariants, cn } from '../ui';
 import { useAuth } from '../auth/AuthContext';
 import { PRACTICE_TOPICS, ROLEPLAY_SCENARIOS } from '../content/suggestions';
+import { collectMistakes, useHistory } from '../history/store';
+import { startMistakesReview } from '../history/helpers';
 
 function greeting() {
   const hour = new Date().getHours();
@@ -62,6 +64,8 @@ function EntryCard({ icon: Icon, title, description, to, cta, suggestions }: Ent
 
 export default function Home() {
   const { status, user, openLogin } = useAuth();
+  const navigate = useNavigate();
+  const mistakes = collectMistakes(useHistory(user?.email));
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 py-10 sm:py-16">
@@ -91,6 +95,19 @@ export default function Home() {
           suggestions={ROLEPLAY_SCENARIOS.slice(0, 3)}
         />
       </div>
+
+      {status === 'authenticated' && mistakes.length > 0 && (
+        <Card padding="sm" className="mt-5 flex flex-col gap-3 px-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-body-sm text-fg">
+            You have <span className="font-semibold">{mistakes.length}</span>{' '}
+            {mistakes.length === 1 ? 'question' : 'questions'} to review from past practice.
+          </p>
+          <Button size="sm" onClick={() => startMistakesReview(navigate, mistakes)} className="shrink-0 self-start sm:self-auto">
+            <ArrowPathIcon className="size-4" />
+            Review mistakes
+          </Button>
+        </Card>
+      )}
 
       {status === 'guest' && (
         <div className="mt-5 flex flex-col gap-3 rounded-card border border-dashed border-line-strong px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

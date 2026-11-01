@@ -27,7 +27,10 @@ export function FeedbackBar({
   onPrimary,
 }: FeedbackBarProps) {
   return (
-    <div
+    <motion.div
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      transition={{ duration: duration.slow, ease: ease.enter }}
       className={cn(
         'fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)]',
         'transition-colors duration-base ease-standard',
@@ -90,6 +93,6 @@ export function FeedbackBar({
           {primaryLabel}
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }

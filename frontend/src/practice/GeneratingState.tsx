@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Skeleton, duration, ease } from '../ui';
+import { Skeleton, ThemedLottie, duration, ease } from '../ui';
+import { WRITING_DRAWN_FRAME, writingAnimation } from '../content/animations';
 
 const STAGES = ['Reading your topic…', 'Writing questions…', 'Checking the answers…'];
 const STAGE_MS = 1800;
@@ -20,10 +21,12 @@ export function GeneratingState({ topic }: { topic: string }) {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14" aria-busy>
       <div className="flex items-center gap-2 text-body-sm text-muted" role="status" aria-live="polite">
-        <span className="relative flex size-2">
-          <span className="absolute inline-flex size-full animate-ping rounded-pill bg-accent opacity-60 motion-reduce:hidden" />
-          <span className="relative inline-flex size-2 rounded-pill bg-accent" />
-        </span>
+        <ThemedLottie
+          animationData={writingAnimation}
+          loop
+          reducedMotionFrame={WRITING_DRAWN_FRAME}
+          className="-my-2 size-10 shrink-0"
+        />
         <AnimatePresence mode="wait">
           <motion.span
             key={stage}
