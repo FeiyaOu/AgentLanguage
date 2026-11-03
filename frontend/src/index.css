@@ -1,3 +1,5 @@
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,75 +12,36 @@
     animation: none !important;
   }
 
+  /* Reserve the scrollbar's space on every page, so moving between short and
+     long pages doesn't shift the layout sideways where scrollbars are always shown. */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
-    @apply bg-orange-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 antialiased min-h-screen relative overflow-x-hidden transition-colors duration-300;
+    @apply bg-canvas text-fg font-sans antialiased min-h-screen overflow-x-hidden;
   }
-  
-  /* Soft background blobs */
-  body::before {
-    content: "";
-    @apply absolute top-0 -left-40 w-96 h-96 bg-orange-300 dark:bg-orange-900/30 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-30 dark:opacity-20 animate-blob pointer-events-none;
-  }
-  body::after {
-    content: "";
-    @apply absolute top-0 -right-40 w-96 h-96 bg-yellow-300 dark:bg-amber-900/30 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-30 dark:opacity-20 animate-blob animation-delay-2000 pointer-events-none;
+
+  ::selection {
+    @apply bg-accent/20;
   }
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-orange-600 hover:bg-orange-700 dark:bg-orange-600 dark:hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.23)] hover:-translate-y-0.5 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-  
-  .btn-secondary {
-    @apply bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium py-3 px-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95;
-  }
-  
-  .card {
-    @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/5 transition-colors duration-300;
-  }
-  
-  .input-field {
-    @apply w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500;
-  }
-}
-
-@keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
-  100% { transform: translate(0px, 0px) scale(1); }
-}
-
-.animate-blob {
-  animation: blob 7s infinite;
-}
-
-.animation-delay-2000 {
-  animation-delay: 2s;
-}
-
-/* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300;
-}
-
-
-@keyframes shine {
-  0% { transform: translateX(-150%) skewX(-12deg); }
-  50%, 100% { transform: translateX(150%) skewX(-12deg); }
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600;
-}
-
+/*
+ * Lottie theming (see src/ui/ThemedLottie.tsx): each token-named color in an
+ * animation is replaced by a placeholder, painted here from the live token.
+ * CSS properties beat SVG presentation attributes, and a theme switch recolors
+ * without reloading or restarting the animation.
+ */
+.themed-lottie [fill='rgb(255,0,1)'] { fill: rgb(var(--color-accent)); }
+.themed-lottie [stroke='rgb(255,0,1)'] { stroke: rgb(var(--color-accent)); }
+.themed-lottie [fill='rgb(255,0,2)'] { fill: rgb(var(--color-accent-soft)); }
+.themed-lottie [stroke='rgb(255,0,2)'] { stroke: rgb(var(--color-accent-soft)); }
+.themed-lottie [fill='rgb(255,0,3)'] { fill: rgb(var(--color-accent-fg)); }
+.themed-lottie [stroke='rgb(255,0,3)'] { stroke: rgb(var(--color-accent-fg)); }
+.themed-lottie [fill='rgb(255,0,4)'] { fill: rgb(var(--color-surface)); }
+.themed-lottie [stroke='rgb(255,0,4)'] { stroke: rgb(var(--color-surface)); }
+.themed-lottie [fill='rgb(255,0,5)'] { fill: rgb(var(--color-line-strong)); }
+.themed-lottie [stroke='rgb(255,0,5)'] { stroke: rgb(var(--color-line-strong)); }
+.themed-lottie [fill='rgb(255,0,6)'] { fill: rgb(var(--color-line-strong)); }
+.themed-lottie [stroke='rgb(255,0,6)'] { stroke: rgb(var(--color-line-strong)); }

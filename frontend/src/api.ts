@@ -59,7 +59,7 @@ export const suggestPersonas = async (
   const response = await api.post('/api/suggest-personas', {
     scenario,
     difficulty,
-  });
+  }, { timeout: 45_000 });
   return response.data.personas;
 };
 

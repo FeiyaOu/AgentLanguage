@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
+import { Button } from '../ui';
 
 export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(() => {
@@ -13,7 +14,11 @@ export default function ThemeToggle() {
     const root = document.documentElement;
     root.classList.toggle('dark', nextIsDark);
     root.style.colorScheme = nextIsDark ? 'dark' : 'light';
-    window.localStorage.setItem('theme', nextIsDark ? 'dark' : 'light');
+    try {
+      window.localStorage.setItem('theme', nextIsDark ? 'dark' : 'light');
+    } catch {
+      // Storage unavailable: theme still applies for this session.
+    }
   };
 
   const withNoTransitions = (fn: () => void) => {
@@ -29,7 +34,9 @@ export default function ThemeToggle() {
   };
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={() => {
         setIsDark((prev) => {
           const next = !prev;
@@ -37,14 +44,9 @@ export default function ThemeToggle() {
           return next;
         });
       }}
-      className="p-2 rounded-full bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 shadow-sm border border-slate-200 dark:border-slate-700 transition-all duration-200"
-      aria-label="Toggle Dark Mode"
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      {isDark ? (
-        <SunIcon className="w-5 h-5" />
-      ) : (
-        <MoonIcon className="w-5 h-5" />
-      )}
-    </button>
+      {isDark ? <SunIcon className="size-5" /> : <MoonIcon className="size-5" />}
+    </Button>
   );
 }
