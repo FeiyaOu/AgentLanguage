@@ -10,11 +10,11 @@ from collections import defaultdict
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
 from agent.agent import LanguageLearningAgent
-from agent.tools import LLM_MODEL
+from agent.tools import LLM_MODEL, GeneratePracticeTool
 
 # Load environment variables
 load_dotenv()
@@ -131,6 +131,8 @@ class GeneratePracticeRequest(BaseModel):
     topic: str
     difficulty: str = "beginner"
     focus_areas: List[str] = []
+    count: int = Field(default=5, ge=1, le=5)
+    exclude_questions: List[str] = Field(default_factory=list)
 
 
 class Exercise(BaseModel):
@@ -254,20 +256,51 @@ def generate_practice(request: GeneratePracticeRequest):
     """Generate practice exercises based on topic and optional focus areas."""
     
     try:
-        # Format the request for the agent
-        if request.focus_areas:
-            user_input = f"Generate practice exercises for {request.topic} at {request.difficulty} level, focusing on: {', '.join(request.focus_areas)}"
-        else:
-            user_input = f"I want to learn {request.topic} at {request.difficulty} level"
-        
-        # Process with agent
-        agent.process_user_input(user_input)
-        
-        # Get generated exercises
-        exercises = agent.get_current_exercises()
-        
-        if not exercises:
-            raise HTTPException(status_code=500, detail="Failed to generate exercises")
+        # Generate directly: avoid agent planning calls and shared exercise state.
+        exercises = []
+        seen = {" ".join(text.casefold().split()) for text in request.exclude_questions}
+        excluded = list(request.exclude_questions)
+        tool = GeneratePracticeTool(agent.client)
+        # Keep usable questions and refill only missing slots. A single repeated
+        # or malformed model response must not discard the entire batch.
+        for _ in range(3):
+            raw = tool.execute(
+                topic=request.topic, difficulty=request.difficulty,
+                focus_areas=request.focus_areas, count=request.count - len(exercises),
+                exclude_questions=list(excluded),
+            )
+            try:
+                candidates = agent._extract_json(raw)
+            except (ValueError, TypeError):
+                continue
+            if not isinstance(candidates, list):
+                continue
+            for item in candidates:
+                try:
+                    exercise = Exercise(**item)
+                except (ValueError, TypeError):
+                    continue
+                if not exercise.question.strip() or not exercise.correct_answer.strip():
+                    continue
+                if exercise.type in ("multiple_choice", "banked_cloze"):
+                    if len(exercise.options) != 4 or exercise.correct_answer not in exercise.options:
+                        continue
+                elif exercise.type != "sentence_reordering":
+                    continue
+                # Reordering instructions are generic; compare target sentences.
+                content = exercise.correct_answer if exercise.type == "sentence_reordering" else exercise.question
+                identity = " ".join(content.casefold().split())
+                if identity in seen:
+                    continue
+                seen.add(identity)
+                excluded.append(content)
+                exercises.append(exercise)
+                if len(exercises) == request.count:
+                    break
+            if len(exercises) == request.count:
+                break
+        if len(exercises) != request.count:
+            raise HTTPException(status_code=502, detail="Couldn't generate enough distinct questions. Please retry.")
         
         return {
             "exercises": exercises,

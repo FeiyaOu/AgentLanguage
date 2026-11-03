@@ -39,7 +39,7 @@ export function ChoiceQuestion({ exercise, answer, verdict, onSelect }: ChoiceQu
 
   return (
     <div>
-      <h2 className="text-heading sm:text-title text-fg" data-question-heading tabIndex={-1}>
+      <h2 className="text-heading sm:text-title text-fg outline-none" data-question-heading tabIndex={-1}>
         {exercise.type === 'banked_cloze' ? (
           <ClozeSentence text={exercise.question} filled={answer} verdict={verdict} />
         ) : (

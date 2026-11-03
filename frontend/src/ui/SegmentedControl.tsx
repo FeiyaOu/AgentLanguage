@@ -11,6 +11,7 @@ type SegmentedControlProps<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   className?: string;
+  tone?: 'neutral' | 'accent';
 };
 
 /**
@@ -24,6 +25,7 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   className,
+  tone = 'neutral',
 }: SegmentedControlProps<T>) {
   const layoutId = useId();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -62,14 +64,21 @@ export function SegmentedControl<T extends string>({
               'relative h-9 rounded-[8px] text-body-sm font-medium outline-none',
               'transition-colors duration-fast ease-standard',
               'focus-visible:ring-2 focus-visible:ring-ring',
-              selected ? 'text-fg' : 'text-muted hover:text-fg',
+              tone === 'accent'
+                ? 'bg-accent-soft text-accent-text ring-1 ring-inset ring-accent-line hover:ring-accent-text'
+                : selected ? 'text-fg' : 'text-muted hover:text-fg',
             )}
           >
             {selected && (
               <motion.span
                 layoutId={layoutId}
                 transition={spring.snappy}
-                className="absolute inset-0 rounded-[8px] bg-surface shadow-raised"
+                className={cn(
+                  'absolute inset-0 rounded-[8px]',
+                  tone === 'accent'
+                    ? 'bg-accent-soft border border-accent-text ring-1 ring-accent-text'
+                    : 'bg-surface shadow-raised',
+                )}
               />
             )}
             <span className="relative">{option.label}</span>

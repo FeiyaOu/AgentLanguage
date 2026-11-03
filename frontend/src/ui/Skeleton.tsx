@@ -3,9 +3,9 @@ import { cn } from './cn';
 
 /**
  * Placeholder for content with a known shape. A highlight sweeps across;
- * with reduced motion it stays as a static block.
+ * Standard placeholders respect reduced motion; prominent loading feedback always animates.
  */
-export function Skeleton({ className, ...props }: ComponentProps<'div'>) {
+export function Skeleton({ className, prominent = false, ...props }: ComponentProps<'div'> & { prominent?: boolean }) {
   return (
     <div
       aria-hidden
@@ -13,7 +13,11 @@ export function Skeleton({ className, ...props }: ComponentProps<'div'>) {
         'relative overflow-hidden bg-skeleton rounded-control',
         'before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer',
         'before:bg-gradient-to-r before:from-transparent before:via-surface/70 before:to-transparent',
-        'motion-reduce:before:hidden',
+        !prominent && 'motion-reduce:before:hidden',
+        prominent && [
+          'bg-accent-line animate-[skeleton-pulse_3.2s_ease-in-out_infinite]',
+          'before:animate-[shimmer_3s_linear_infinite] before:via-surface/25',
+        ],
         className,
       )}
       {...props}

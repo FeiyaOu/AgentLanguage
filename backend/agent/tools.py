@@ -33,14 +33,14 @@ class GeneratePracticeTool(Tool):
         )
         self.llm = llm_client
     
-    def execute(self, topic: str, focus_areas: List[str] = None, difficulty: str = "beginner") -> str:
+    def execute(self, topic: str, focus_areas: List[str] = None, difficulty: str = "beginner", count: int = 5, exclude_questions: List[str] = None) -> str:
         """Generate practice exercises using LLM."""
         
         focus_text = ""
         if focus_areas:
             focus_text = f"\nFocus on these weak areas: {', '.join(focus_areas)}"
 
-        prompt = f"""Generate 5 practice exercises for learning English in this context: {topic}
+        prompt = f"""Generate {count} practice exercises for learning English in this context: {topic}
 Difficulty level: {difficulty}{focus_text}
 
 IMPORTANT CONSTRAINTS:
@@ -52,7 +52,7 @@ Supported exercise types (ONLY these):
 2. "banked_cloze": A sentence with a single blank ("___") + options bank. User selects the best option.
 3. "sentence_reordering": Provide shuffled word tokens as bubbles; user taps to reorder into a correct sentence.
 
-Return ONLY a JSON array of 5 exercises. No markdown, no explanation.
+Return ONLY a JSON array of {count} exercises. No markdown, no explanation.
 
 Schemas:
 
@@ -86,9 +86,21 @@ Guidelines:
 - For "sentence_reordering", tokens MUST be intentionally shuffled (not already in the correct order).
 """
 
+        if exclude_questions:
+            prompt += "\nAvoid repeating this existing exercise content (question text, or target sentence for reordering). Generic instructions may be reused: " + json.dumps(exclude_questions)
+
         response = self.llm.chat.completions.create(
             model=LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": (
+                    f"Return exactly {count} NEW English exercises as a JSON array. "
+                    "Follow the user's schema. Choose different situations, vocabulary, and sentences "
+                    "from the excluded content. Do not reuse any excluded question or target sentence. "
+                    "Even when only one exercise is requested, create a new example, not a schema example. "
+                    "Excluded content: " + json.dumps(exclude_questions or [])
+                )},
+                {"role": "user", "content": prompt},
+            ],
             temperature=0.7
         )
         
@@ -149,6 +161,9 @@ Return ONLY a JSON object with this structure:
     "suggested_exercise_type": "banked_cloze"
 }}
 This is just an example, generate different feedback.
+Return at most 2 weak_areas, prioritizing the most useful improvements.
+Keep recommendations concise: 1–3 short sentences, aim for 40–60 words,
+and use strictly fewer than 80 words in total. Give specific, actionable advice.
 """
 
         response = self.llm.chat.completions.create(

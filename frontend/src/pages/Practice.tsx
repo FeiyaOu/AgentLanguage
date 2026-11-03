@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion, useAnimationControls } from 'framer-motion';
+import { motion, useAnimationControls } from 'framer-motion';
 import type { Exercise } from '../types';
-import { generatePractice, scoreAnswers } from '../api';
+import { generatePractice } from '../api';
 import { FocusHeader } from '../components/FocusHeader';
-import { Button, EmptyState, SegmentedProgress, duration, ease, toast, type SegmentState } from '../ui';
+import { Button, EmptyState, SegmentedProgress, type SegmentState } from '../ui';
 import { isCorrect, TYPE_PROMPT } from '../practice/grade';
 import { ChoiceQuestion } from '../practice/ChoiceQuestion';
 import { ReorderQuestion, type ReorderBoard, type Token } from '../practice/ReorderQuestion';
@@ -57,24 +58,53 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
   const [answers, setAnswers] = useState<string[]>(() => (provided ?? []).map(() => ''));
   const [verdicts, setVerdicts] = useState<(boolean | null)[]>(() => (provided ?? []).map(() => null));
   const [boards, setBoards] = useState<Record<number, ReorderBoard>>(() => boardsFor(provided ?? []));
-  const [submitting, setSubmitting] = useState(false);
+  const [remainingLoading, setRemainingLoading] = useState(false);
+  const [remainingError, setRemainingError] = useState<string>();
+  const totalQuestions = provided?.length || 5;
   const shake = useAnimationControls();
   const questionRef = useRef<HTMLDivElement>(null);
   const fetched = useRef(false);
 
-  // State updates happen only in the request callbacks; the initial state already says "generating".
+  const fetchRemaining = useCallback(async (first: Exercise) => {
+    setRemainingLoading(true);
+    setRemainingError(undefined);
+    try {
+      const firstContent = first.type === 'sentence_reordering' ? first.correct_answer : first.question;
+      const { exercises: rest } = await generatePractice(topic, difficulty, focusAreas ?? [], 4, [firstContent]);
+      setExercises((prev) => [...prev, ...rest]);
+      setAnswers((prev) => [...prev, ...rest.map(() => '')]);
+      setVerdicts((prev) => [...prev, ...rest.map(() => null)]);
+      const restBoards = boardsFor(rest);
+      setBoards((prev) => ({
+        ...prev,
+        ...Object.fromEntries(Object.entries(restBoards).map(([i, board]) => [Number(i) + 1, board])),
+      }));
+    } catch (error) {
+      const status = isAxiosError(error) ? error.response?.status : undefined;
+      setRemainingError(status === 502
+        ? "Couldn't prepare enough distinct questions. Your answer is saved; please retry."
+        : status === 429
+          ? 'Too many requests. Please wait a moment before retrying.'
+          : "Couldn't load the remaining questions. Check your connection and try again. Your answer is saved.");
+    } finally {
+      setRemainingLoading(false);
+    }
+  }, [topic, difficulty, focusAreas]);
+
+  // Render the first question before requesting the remaining batch.
   const fetchExercises = useCallback(() => {
-    generatePractice(topic, difficulty, focusAreas ?? [])
+    generatePractice(topic, difficulty, focusAreas ?? [], 1)
       .then(({ exercises }) => {
         setExercises(exercises);
         setAnswers(exercises.map(() => ''));
         setVerdicts(exercises.map(() => null));
         setBoards(boardsFor(exercises));
         setIndex(0);
+        void fetchRemaining(exercises[0]);
       })
       .catch(() => setLoadError(true))
       .finally(() => setGenerating(false));
-  }, [topic, difficulty, focusAreas]);
+  }, [topic, difficulty, focusAreas, fetchRemaining]);
 
   useEffect(() => {
     // Guard against StrictMode's double effect, which would generate twice.
@@ -92,14 +122,14 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
   const exercise = exercises[index];
   const answer = answers[index] ?? '';
   const verdict = verdicts[index] ?? null;
-  const isLast = index === exercises.length - 1;
+  const isLast = index === totalQuestions - 1;
+  const awaitingNext = index === exercises.length - 1 && exercises.length < totalQuestions;
   const board = boards[index];
   const isReorder = exercise?.type === 'sentence_reordering';
   const canCheck = isReorder ? !!board && board.available.length === 0 && board.selected.length > 0 : !!answer;
 
   // Move focus to each new question so keyboard and screen-reader users follow along.
   useEffect(() => {
-    if (index === 0) return;
     questionRef.current?.querySelector<HTMLElement>('[data-question-heading]')?.focus();
   }, [index]);
 
@@ -123,23 +153,16 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     }
   };
 
-  const finish = async () => {
-    setSubmitting(true);
-    try {
-      const result = await scoreAnswers(exercises, answers);
-      navigate('/practice/results', { state: { result, topic, difficulty, exercises, answers } });
-    } catch {
-      setSubmitting(false);
-      toast.error("Couldn't load your results", {
-        description: 'Check your connection and try again.',
-        action: { label: 'Retry', onClick: () => void finish() },
-      });
-    }
+  const finish = () => {
+    navigate('/practice/results', { state: { topic, difficulty, exercises, answers } });
   };
 
   const primary = () => {
+    if (verdict !== null && awaitingNext && remainingLoading) return;
     if (verdict === null) {
       if (canCheck) check();
+    } else if (awaitingNext) {
+      void fetchRemaining(exercises[0]);
     } else if (isLast) {
       void finish();
     } else {
@@ -156,9 +179,12 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
       if (target.closest('input, textarea, [contenteditable="true"]')) return;
 
       if (e.key === 'Enter') {
-        // A focused button already handles Enter natively; don't fire twice.
-        if (target.closest('button, a')) return;
+        // Answer buttons keep focus after a mouse click. Enter checks the
+        // answer instead of triggering the focused option's native click.
+        const answerOption = target.closest('[role="radiogroup"][aria-label="Answer options"] [role="radio"]');
+        if (target.closest('button, a') && !answerOption) return;
         e.preventDefault();
+        if (e.repeat) return;
         primary();
         return;
       }
@@ -171,7 +197,7 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const segments: SegmentState[] = exercises.map((_, i) =>
+  const segments: SegmentState[] = Array.from({ length: totalQuestions }, (_, i) =>
     verdicts[i] === true ? 'correct' : verdicts[i] === false ? 'incorrect' : i === index ? 'current' : 'upcoming',
   );
 
@@ -179,11 +205,11 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     <FocusHeader
       title={topic}
       subtitle={<span className="capitalize">{difficulty}</span>}
-      progress={exercises.length > 0 ? <SegmentedProgress segments={segments} label={`Question ${index + 1} of ${exercises.length}`} /> : null}
+      progress={exercises.length > 0 ? <SegmentedProgress segments={segments} currentIndex={index} label={`Question ${index + 1} of ${totalQuestions}`} /> : null}
       actions={
         exercises.length > 0 ? (
           <span className="text-caption text-muted tabular-nums">
-            {index + 1}/{exercises.length}
+            {index + 1}/{totalQuestions}
           </span>
         ) : null
       }
@@ -231,14 +257,10 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     <>
       {header}
       <main className="mx-auto max-w-2xl px-4 pb-48 pt-10 sm:px-6 sm:pt-14">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
+          {remainingError && <p role="alert" className="mb-4 rounded-control bg-danger-soft px-4 py-3 text-body-sm text-danger">{remainingError}</p>}
+          <div
             key={index}
             ref={questionRef}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: duration.base, ease: ease.standard }}
           >
             <div className="text-label text-accent-text">{TYPE_PROMPT[exercise.type] ?? 'Answer the question'}</div>
             <motion.div animate={shake} className="mt-3">
@@ -257,18 +279,26 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
                 <ChoiceQuestion exercise={exercise} answer={answer} verdict={verdict} onSelect={setAnswer} />
               )}
             </motion.div>
-          </motion.div>
-        </AnimatePresence>
+          </div>
       </main>
 
       <FeedbackBar
         verdict={verdict}
         correctAnswer={exercise.correct_answer}
         numberKeys={!isReorder}
-        primaryLabel={verdict === null ? 'Check' : isLast ? 'See results' : 'Continue'}
-        primaryDisabled={verdict === null && !canCheck && supported}
-        loading={submitting}
-        onPrimary={supported ? primary : () => (isLast ? void finish() : setIndex((i) => i + 1))}
+        primaryLabel={verdict === null ? 'Check' : awaitingNext ? remainingError ? 'Retry loading' : 'Preparing questions…' : isLast ? 'See results' : 'Next'}
+        primaryDisabled={(verdict === null && !canCheck && supported) || (verdict !== null && awaitingNext && remainingLoading)}
+        previousDisabled={index === 0}
+        onPrevious={() => setIndex((i) => Math.max(0, i - 1))}
+        onPrimary={supported ? primary : () => {
+          if (awaitingNext) {
+            if (!remainingLoading) void fetchRemaining(exercises[0]);
+          } else if (isLast) {
+            void finish();
+          } else {
+            setIndex((i) => i + 1);
+          }
+        }}
       />
     </>
   );

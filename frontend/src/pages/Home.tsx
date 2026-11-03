@@ -33,7 +33,9 @@ function EntryCard({ icon: Icon, title, description, to, cta, suggestions }: Ent
       <p className="mt-1.5 text-body-sm text-muted">{description}</p>
 
       <div className="mt-6">
-        <div className="text-caption text-subtle mb-2.5">Try one</div>
+        <div className="mb-2.5 inline-flex rounded-pill bg-accent-soft px-2.5 py-1 text-caption font-medium text-accent-text">
+          Common Topics
+        </div>
         <ul className="flex flex-wrap gap-2">
           {suggestions.map((s) => (
             <li key={s}>
@@ -110,13 +112,14 @@ export default function Home() {
       )}
 
       {status === 'guest' && (
-        <div className="mt-5 flex flex-col gap-3 rounded-card border border-dashed border-line-strong px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-body-sm text-muted">
-            You can practise without an account. Log in to save your results and review past questions.
+        <div className="mt-5 rounded-card border border-dashed border-line-strong px-5 py-4">
+          <p className="text-body-sm leading-relaxed text-muted">
+            You can practise without an account.{' '}
+            <Button variant="secondary" size="sm" onClick={openLogin} className="mx-0.5 align-middle">
+              Log in
+            </Button>{' '}
+            to save your results and review past questions.
           </p>
-          <Button variant="secondary" size="sm" onClick={openLogin} className="shrink-0 self-start sm:self-auto">
-            Log in
-          </Button>
         </div>
       )}
     </div>

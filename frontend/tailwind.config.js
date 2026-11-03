@@ -92,6 +92,10 @@ export default {
           to: { opacity: '0', transform: 'scale(0.98)' },
         },
         shimmer: { to: { transform: 'translateX(100%)' } },
+        'skeleton-pulse': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.92' },
+        },
         'loading-in': { from: { opacity: '0' }, to: { opacity: '1' } },
         'loading-out': { from: { opacity: '1' }, to: { opacity: '0' } },
       },
