@@ -91,7 +91,16 @@ Guidelines:
 
         response = self.llm.chat.completions.create(
             model=LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": (
+                    f"Return exactly {count} NEW English exercises as a JSON array. "
+                    "Follow the user's schema. Choose different situations, vocabulary, and sentences "
+                    "from the excluded content. Do not reuse any excluded question or target sentence. "
+                    "Even when only one exercise is requested, create a new example, not a schema example. "
+                    "Excluded content: " + json.dumps(exclude_questions or [])
+                )},
+                {"role": "user", "content": prompt},
+            ],
             temperature=0.7
         )
         

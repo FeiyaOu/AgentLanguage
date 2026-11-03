@@ -46,6 +46,26 @@ class PracticeGenerationTests(unittest.TestCase):
                 GeneratePracticeRequest(topic="Travel", count=count)
 
     @patch("main.GeneratePracticeTool")
+    def test_refills_duplicate_without_discarding_valid_questions(self, tool):
+        tool.return_value.execute.side_effect = [
+            json.dumps([question(1), question(2), question(3), question(4)]),
+            json.dumps([question(5)]),
+        ]
+        result = generate_practice(GeneratePracticeRequest(
+            topic="Travel", count=4, exclude_questions=["Question 1"],
+        ))
+        self.assertEqual([item.question for item in result["exercises"]], [f"Question {i}" for i in range(2, 6)])
+        self.assertEqual(tool.return_value.execute.call_args.kwargs["count"], 1)
+        self.assertEqual(tool.return_value.execute.call_count, 2)
+
+    @patch("main.GeneratePracticeTool")
+    def test_malformed_output_retries_are_bounded(self, tool):
+        tool.return_value.execute.return_value = 'not json'
+        with self.assertRaises(HTTPException):
+            generate_practice(GeneratePracticeRequest(topic="Travel", count=4))
+        self.assertEqual(tool.return_value.execute.call_count, 3)
+
+    @patch("main.GeneratePracticeTool")
     def test_reordering_compares_sentence_not_shared_instruction(self, tool):
         instruction = "Reorder the words to form a correct sentence."
         exercise = {

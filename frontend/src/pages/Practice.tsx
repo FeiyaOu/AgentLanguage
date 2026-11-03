@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, useAnimationControls } from 'framer-motion';
 import type { Exercise } from '../types';
-import { generatePractice, scoreAnswers } from '../api';
+import { generatePractice } from '../api';
 import { FocusHeader } from '../components/FocusHeader';
-import { Button, EmptyState, SegmentedProgress, toast, type SegmentState } from '../ui';
+import { Button, EmptyState, SegmentedProgress, type SegmentState } from '../ui';
 import { isCorrect, TYPE_PROMPT } from '../practice/grade';
 import { ChoiceQuestion } from '../practice/ChoiceQuestion';
 import { ReorderQuestion, type ReorderBoard, type Token } from '../practice/ReorderQuestion';
@@ -57,9 +58,8 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
   const [answers, setAnswers] = useState<string[]>(() => (provided ?? []).map(() => ''));
   const [verdicts, setVerdicts] = useState<(boolean | null)[]>(() => (provided ?? []).map(() => null));
   const [boards, setBoards] = useState<Record<number, ReorderBoard>>(() => boardsFor(provided ?? []));
-  const [submitting, setSubmitting] = useState(false);
   const [remainingLoading, setRemainingLoading] = useState(false);
-  const [remainingError, setRemainingError] = useState(false);
+  const [remainingError, setRemainingError] = useState<string>();
   const totalQuestions = provided?.length || 5;
   const shake = useAnimationControls();
   const questionRef = useRef<HTMLDivElement>(null);
@@ -67,7 +67,7 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
 
   const fetchRemaining = useCallback(async (first: Exercise) => {
     setRemainingLoading(true);
-    setRemainingError(false);
+    setRemainingError(undefined);
     try {
       const firstContent = first.type === 'sentence_reordering' ? first.correct_answer : first.question;
       const { exercises: rest } = await generatePractice(topic, difficulty, focusAreas ?? [], 4, [firstContent]);
@@ -79,8 +79,13 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
         ...prev,
         ...Object.fromEntries(Object.entries(restBoards).map(([i, board]) => [Number(i) + 1, board])),
       }));
-    } catch {
-      setRemainingError(true);
+    } catch (error) {
+      const status = isAxiosError(error) ? error.response?.status : undefined;
+      setRemainingError(status === 502
+        ? "Couldn't prepare enough distinct questions. Your answer is saved; please retry."
+        : status === 429
+          ? 'Too many requests. Please wait a moment before retrying.'
+          : "Couldn't load the remaining questions. Check your connection and try again. Your answer is saved.");
     } finally {
       setRemainingLoading(false);
     }
@@ -148,22 +153,12 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     }
   };
 
-  const finish = async () => {
-    setSubmitting(true);
-    try {
-      const result = await scoreAnswers(exercises, answers);
-      navigate('/practice/results', { state: { result, topic, difficulty, exercises, answers } });
-    } catch {
-      setSubmitting(false);
-      toast.error("Couldn't load your results", {
-        description: 'Check your connection and try again.',
-        action: { label: 'Retry', onClick: () => void finish() },
-      });
-    }
+  const finish = () => {
+    navigate('/practice/results', { state: { topic, difficulty, exercises, answers } });
   };
 
   const primary = () => {
-    if (submitting || (verdict !== null && awaitingNext && remainingLoading)) return;
+    if (verdict !== null && awaitingNext && remainingLoading) return;
     if (verdict === null) {
       if (canCheck) check();
     } else if (awaitingNext) {
@@ -189,7 +184,7 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
         const answerOption = target.closest('[role="radiogroup"][aria-label="Answer options"] [role="radio"]');
         if (target.closest('button, a') && !answerOption) return;
         e.preventDefault();
-        if (e.repeat || submitting) return;
+        if (e.repeat) return;
         primary();
         return;
       }
@@ -262,6 +257,7 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     <>
       {header}
       <main className="mx-auto max-w-2xl px-4 pb-48 pt-10 sm:px-6 sm:pt-14">
+          {remainingError && <p role="alert" className="mb-4 rounded-control bg-danger-soft px-4 py-3 text-body-sm text-danger">{remainingError}</p>}
           <div
             key={index}
             ref={questionRef}
@@ -292,7 +288,6 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
         numberKeys={!isReorder}
         primaryLabel={verdict === null ? 'Check' : awaitingNext ? remainingError ? 'Retry loading' : 'Preparing questions…' : isLast ? 'See results' : 'Next'}
         primaryDisabled={(verdict === null && !canCheck && supported) || (verdict !== null && awaitingNext && remainingLoading)}
-        loading={submitting}
         previousDisabled={index === 0}
         onPrevious={() => setIndex((i) => Math.max(0, i - 1))}
         onPrimary={supported ? primary : () => {

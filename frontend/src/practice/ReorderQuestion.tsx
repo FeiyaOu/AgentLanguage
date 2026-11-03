@@ -31,7 +31,7 @@ export function ReorderQuestion({ questionKey, prompt, board, verdict, onPick, o
 
   return (
     <div>
-      <h2 className="text-heading sm:text-title text-fg" data-question-heading tabIndex={-1}>
+      <h2 className="text-heading sm:text-title text-fg outline-none" data-question-heading tabIndex={-1}>
         {prompt}
       </h2>
 

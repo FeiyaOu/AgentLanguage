@@ -3,7 +3,8 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowPathIcon, BookmarkIcon, CheckCircleIcon, LightBulbIcon } from '@heroicons/react/24/outline';
 import type { ScoreResult, Exercise } from '../types';
 import { useAuth } from '../auth/AuthContext';
-import { Badge, Button, Card, buttonVariants, toast } from '../ui';
+import { Badge, Button, Card, Skeleton, buttonVariants, toast } from '../ui';
+import { scoreAnswers } from '../api';
 import { saveRecord } from '../history/store';
 import { isCorrect } from '../practice/grade';
 import { ScoreSummary } from '../results/ScoreSummary';
@@ -11,7 +12,7 @@ import { ReviewList, type ReviewItem } from '../results/ReviewList';
 import { TutorDialog } from '../results/TutorDialog';
 
 type FeedbackState = {
-  result: ScoreResult;
+  result?: ScoreResult;
   topic: string;
   difficulty: string;
   exercises: Exercise[];
@@ -21,9 +22,60 @@ type FeedbackState = {
 export default function Feedback() {
   const location = useLocation();
   const state = location.state as FeedbackState | null;
-  // Results only exist in router state; after a refresh there is nothing to show.
-  if (!state?.result) return <Navigate to="/practice" replace />;
-  return <FeedbackView {...state} />;
+  if (!state?.result && (!state?.topic || !state.exercises?.length || state.answers?.length !== state.exercises.length)) {
+    return <Navigate to="/practice" replace />;
+  }
+  if (!state.result) return <PendingResults key={location.key} {...state} />;
+  return <FeedbackView {...state} result={state.result} />;
+}
+
+function PendingResults({ topic, difficulty, exercises, answers }: FeedbackState) {
+  const navigate = useNavigate();
+  const request = useRef<Promise<ScoreResult> | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    // Reuse the in-flight request during StrictMode's effect replay.
+    request.current ??= scoreAnswers(exercises, answers);
+    request.current.then((result) => {
+      if (active) navigate('/practice/results', {
+        replace: true, state: { result, topic, difficulty, exercises, answers },
+      });
+    }).catch(() => {
+      if (active) setFailed(true);
+    });
+    return () => { active = false; };
+  }, [attempt, topic, difficulty, exercises, answers, navigate]);
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-5 px-4 py-10 sm:px-6 sm:py-14" aria-busy={!failed}>
+      <h1 className="text-title text-fg">Your results</h1>
+      {failed ? (
+        <div role="alert" className="space-y-3">
+          <p className="text-body-sm text-muted">Couldn't prepare your results. Your answers are still here.</p>
+          <Button onClick={() => {
+            request.current = null;
+            setFailed(false);
+            setAttempt((value) => value + 1);
+          }}>Try again</Button>
+        </div>
+      ) : (
+        <>
+          <div role="status" className="flex items-center gap-3 text-body-sm text-muted">
+            <span>Preparing your results and feedback…</span>
+            <span aria-hidden className="size-4 shrink-0 rounded-full border-2 border-accent-line/60 border-t-accent/70 animate-[spin_1.4s_linear_infinite]" />
+          </div>
+          <Skeleton prominent className="h-48 rounded-card" />
+          <Skeleton prominent className="h-28 rounded-card" />
+          <Skeleton prominent className="h-7 w-24" />
+          <Skeleton prominent className="h-20 rounded-card" />
+          <Skeleton prominent className="h-20 rounded-card" />
+        </>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -59,7 +111,7 @@ function buildReview(result: ScoreResult, exercises: Exercise[], answers: string
   });
 }
 
-function FeedbackView({ result, topic, difficulty, exercises, answers }: FeedbackState) {
+function FeedbackView({ result, topic, difficulty, exercises, answers }: FeedbackState & { result: ScoreResult }) {
   const navigate = useNavigate();
   const { status, user, openLogin } = useAuth();
   const [tutorItem, setTutorItem] = useState<ReviewItem | null>(null);

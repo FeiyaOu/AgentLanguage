@@ -257,28 +257,50 @@ def generate_practice(request: GeneratePracticeRequest):
     
     try:
         # Generate directly: avoid agent planning calls and shared exercise state.
-        raw = GeneratePracticeTool(agent.client).execute(
-            topic=request.topic, difficulty=request.difficulty,
-            focus_areas=request.focus_areas, count=request.count,
-            exclude_questions=request.exclude_questions,
-        )
-        exercises = agent._extract_json(raw)
-        if not isinstance(exercises, list) or len(exercises) != request.count:
-            raise HTTPException(status_code=502, detail="Incomplete generated question set")
-        exercises = [Exercise(**item) for item in exercises]
-        for exercise in exercises:
-            if not exercise.question.strip() or not exercise.correct_answer.strip():
-                raise HTTPException(status_code=502, detail="Invalid generated question")
-            if exercise.type in ("multiple_choice", "banked_cloze"):
-                if len(exercise.options) != 4 or exercise.correct_answer not in exercise.options:
-                    raise HTTPException(status_code=502, detail="Invalid answer options")
-            elif exercise.type != "sentence_reordering":
-                raise HTTPException(status_code=502, detail="Unsupported question type")
-            # Reordering prompts are generic instructions; compare the target
-            # sentence instead so distinct exercises can share that instruction.
-            content = exercise.correct_answer if exercise.type == "sentence_reordering" else exercise.question
-            if content in request.exclude_questions:
-                raise HTTPException(status_code=502, detail="Duplicate generated question")
+        exercises = []
+        seen = {" ".join(text.casefold().split()) for text in request.exclude_questions}
+        excluded = list(request.exclude_questions)
+        tool = GeneratePracticeTool(agent.client)
+        # Keep usable questions and refill only missing slots. A single repeated
+        # or malformed model response must not discard the entire batch.
+        for _ in range(3):
+            raw = tool.execute(
+                topic=request.topic, difficulty=request.difficulty,
+                focus_areas=request.focus_areas, count=request.count - len(exercises),
+                exclude_questions=list(excluded),
+            )
+            try:
+                candidates = agent._extract_json(raw)
+            except (ValueError, TypeError):
+                continue
+            if not isinstance(candidates, list):
+                continue
+            for item in candidates:
+                try:
+                    exercise = Exercise(**item)
+                except (ValueError, TypeError):
+                    continue
+                if not exercise.question.strip() or not exercise.correct_answer.strip():
+                    continue
+                if exercise.type in ("multiple_choice", "banked_cloze"):
+                    if len(exercise.options) != 4 or exercise.correct_answer not in exercise.options:
+                        continue
+                elif exercise.type != "sentence_reordering":
+                    continue
+                # Reordering instructions are generic; compare target sentences.
+                content = exercise.correct_answer if exercise.type == "sentence_reordering" else exercise.question
+                identity = " ".join(content.casefold().split())
+                if identity in seen:
+                    continue
+                seen.add(identity)
+                excluded.append(content)
+                exercises.append(exercise)
+                if len(exercises) == request.count:
+                    break
+            if len(exercises) == request.count:
+                break
+        if len(exercises) != request.count:
+            raise HTTPException(status_code=502, detail="Couldn't generate enough distinct questions. Please retry.")
         
         return {
             "exercises": exercises,
