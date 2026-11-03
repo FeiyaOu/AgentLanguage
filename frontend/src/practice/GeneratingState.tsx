@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Skeleton, ThemedLottie, duration, ease } from '../ui';
+import { Skeleton, ThemedLottie } from '../ui';
 import { WRITING_DRAWN_FRAME, writingAnimation } from '../content/animations';
 
-const STAGES = ['Reading your topic…', 'Writing questions…', 'Checking the answers…'];
+const STAGES = ['Preparing your practice…', 'Creating questions for you…', 'Getting everything ready…'];
 const STAGE_MS = 1800;
 
 /**
@@ -27,26 +26,21 @@ export function GeneratingState({ topic }: { topic: string }) {
           reducedMotionFrame={WRITING_DRAWN_FRAME}
           className="-my-2 size-10 shrink-0"
         />
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={stage}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: duration.base, ease: ease.standard }}
-          >
-            {STAGES[stage]}
-          </motion.span>
-        </AnimatePresence>
+        <span>{STAGES[stage]}</span>
+        <div
+          role="progressbar"
+          aria-label="Preparing practice questions"
+          className="ml-1 size-4 shrink-0 rounded-full border-2 border-accent-line/60 border-t-accent/70 animate-[spin_1.4s_linear_infinite]"
+        />
       </div>
       <p className="sr-only">Preparing questions about {topic}</p>
 
-      <Skeleton className="mt-6 h-3 w-32" />
-      <Skeleton className="mt-4 h-7 w-full" />
-      <Skeleton className="mt-2 h-7 w-3/4" />
+      <Skeleton prominent className="mt-6 h-3 w-32" />
+      <Skeleton prominent className="mt-4 h-7 w-full" />
+      <Skeleton prominent className="mt-2 h-7 w-3/4" />
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 rounded-card" />
+          <Skeleton prominent key={i} className="h-14 rounded-card" />
         ))}
       </div>
     </div>

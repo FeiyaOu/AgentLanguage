@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion, useAnimationControls } from 'framer-motion';
+import { motion, useAnimationControls } from 'framer-motion';
 import type { Exercise } from '../types';
 import { generatePractice, scoreAnswers } from '../api';
 import { FocusHeader } from '../components/FocusHeader';
-import { Button, EmptyState, SegmentedProgress, duration, ease, toast, type SegmentState } from '../ui';
+import { Button, EmptyState, SegmentedProgress, toast, type SegmentState } from '../ui';
 import { isCorrect, TYPE_PROMPT } from '../practice/grade';
 import { ChoiceQuestion } from '../practice/ChoiceQuestion';
 import { ReorderQuestion, type ReorderBoard, type Token } from '../practice/ReorderQuestion';
@@ -99,7 +99,6 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
 
   // Move focus to each new question so keyboard and screen-reader users follow along.
   useEffect(() => {
-    if (index === 0) return;
     questionRef.current?.querySelector<HTMLElement>('[data-question-heading]')?.focus();
   }, [index]);
 
@@ -138,6 +137,7 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
   };
 
   const primary = () => {
+    if (submitting) return;
     if (verdict === null) {
       if (canCheck) check();
     } else if (isLast) {
@@ -156,9 +156,12 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
       if (target.closest('input, textarea, [contenteditable="true"]')) return;
 
       if (e.key === 'Enter') {
-        // A focused button already handles Enter natively; don't fire twice.
-        if (target.closest('button, a')) return;
+        // Answer buttons keep focus after a mouse click. Enter checks the
+        // answer instead of triggering the focused option's native click.
+        const answerOption = target.closest('[role="radiogroup"][aria-label="Answer options"] [role="radio"]');
+        if (target.closest('button, a') && !answerOption) return;
         e.preventDefault();
+        if (e.repeat || submitting) return;
         primary();
         return;
       }
@@ -179,7 +182,7 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     <FocusHeader
       title={topic}
       subtitle={<span className="capitalize">{difficulty}</span>}
-      progress={exercises.length > 0 ? <SegmentedProgress segments={segments} label={`Question ${index + 1} of ${exercises.length}`} /> : null}
+      progress={exercises.length > 0 ? <SegmentedProgress segments={segments} currentIndex={index} label={`Question ${index + 1} of ${exercises.length}`} /> : null}
       actions={
         exercises.length > 0 ? (
           <span className="text-caption text-muted tabular-nums">
@@ -231,14 +234,9 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     <>
       {header}
       <main className="mx-auto max-w-2xl px-4 pb-48 pt-10 sm:px-6 sm:pt-14">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
+          <div
             key={index}
             ref={questionRef}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: duration.base, ease: ease.standard }}
           >
             <div className="text-label text-accent-text">{TYPE_PROMPT[exercise.type] ?? 'Answer the question'}</div>
             <motion.div animate={shake} className="mt-3">
@@ -257,17 +255,18 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
                 <ChoiceQuestion exercise={exercise} answer={answer} verdict={verdict} onSelect={setAnswer} />
               )}
             </motion.div>
-          </motion.div>
-        </AnimatePresence>
+          </div>
       </main>
 
       <FeedbackBar
         verdict={verdict}
         correctAnswer={exercise.correct_answer}
         numberKeys={!isReorder}
-        primaryLabel={verdict === null ? 'Check' : isLast ? 'See results' : 'Continue'}
+        primaryLabel={verdict === null ? 'Check' : isLast ? 'See results' : 'Next'}
         primaryDisabled={verdict === null && !canCheck && supported}
         loading={submitting}
+        previousDisabled={index === 0}
+        onPrevious={() => setIndex((i) => Math.max(0, i - 1))}
         onPrimary={supported ? primary : () => (isLast ? void finish() : setIndex((i) => i + 1))}
       />
     </>

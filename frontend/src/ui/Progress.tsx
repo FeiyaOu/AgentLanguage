@@ -61,10 +61,12 @@ export function SegmentedProgress({
   segments,
   label,
   className,
+  currentIndex,
 }: {
   segments: SegmentState[];
   label: string;
   className?: string;
+  currentIndex?: number;
 }) {
   const done = segments.filter((s) => s === 'correct' || s === 'incorrect').length;
   return (
@@ -79,7 +81,17 @@ export function SegmentedProgress({
       {segments.map((state, i) => (
         <div
           key={i}
-          className={cn('h-1.5 flex-1 rounded-pill transition-colors duration-base ease-standard', segmentClass[state])}
+          aria-current={i === currentIndex ? 'step' : undefined}
+          className={cn(
+            'h-1.5 flex-1 rounded-pill transition-colors duration-base ease-standard',
+            segmentClass[state],
+            i === currentIndex && 'ring-2 ring-offset-2 ring-offset-canvas',
+            i === currentIndex && (state === 'correct'
+              ? 'ring-success'
+              : state === 'incorrect'
+                ? 'ring-danger'
+                : 'ring-accent/40'),
+          )}
         />
       ))}
     </div>

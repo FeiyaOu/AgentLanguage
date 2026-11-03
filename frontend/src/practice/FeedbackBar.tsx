@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button, cn, duration, ease } from '../ui';
 import { AnimatedMark } from './AnimatedMark';
 
@@ -11,6 +11,8 @@ type FeedbackBarProps = {
   /** Choice questions can be answered with number keys; reordering only uses Enter. */
   numberKeys: boolean;
   onPrimary: () => void;
+  onPrevious: () => void;
+  previousDisabled: boolean;
 };
 
 /**
@@ -25,6 +27,8 @@ export function FeedbackBar({
   loading,
   numberKeys,
   onPrimary,
+  onPrevious,
+  previousDisabled,
 }: FeedbackBarProps) {
   return (
     <motion.div
@@ -41,13 +45,8 @@ export function FeedbackBar({
     >
       <div className="mx-auto flex min-h-24 max-w-2xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:px-6">
         <div className="min-w-0 flex-1" aria-live="polite">
-          <AnimatePresence mode="wait" initial={false}>
             {verdict === null ? (
-              <motion.p
-                key="hint"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+              <p
                 className="hidden text-caption text-subtle sm:block"
               >
                 Press{' '}
@@ -57,14 +56,9 @@ export function FeedbackBar({
                   </>
                 )}
                 <kbd className="font-medium text-muted">Enter</kbd> to check
-              </motion.p>
+              </p>
             ) : (
-              <motion.div
-                key="verdict"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: duration.base, ease: ease.enter }}
+              <div
                 className="flex items-center gap-3"
               >
                 <AnimatedMark correct={verdict} />
@@ -78,20 +72,30 @@ export function FeedbackBar({
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
         </div>
 
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={onPrevious}
+            disabled={previousDisabled || loading}
+            className="flex-1 sm:flex-none"
+          >
+            Previous
+          </Button>
         <Button
           size="lg"
           onClick={onPrimary}
           disabled={primaryDisabled}
           loading={loading}
-          className="w-full sm:w-auto sm:min-w-40"
+          className="flex-1 sm:flex-none sm:min-w-40"
         >
           {primaryLabel}
         </Button>
+        </div>
       </div>
     </motion.div>
   );

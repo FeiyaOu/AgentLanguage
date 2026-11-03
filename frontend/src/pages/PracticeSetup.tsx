@@ -44,11 +44,14 @@ export default function PracticeSetup() {
               )}
             </Field>
             <div className="flex flex-wrap gap-2">
-              {PRACTICE_TOPICS.map((t) => (
+              {PRACTICE_TOPICS.slice(0, 4).map((t) => (
                 <Chip
                   key={t}
                   size="sm"
                   selected={topic === t}
+                  className={topic === t
+                    ? 'bg-accent-soft text-accent-text border-accent-text ring-1 ring-accent-text'
+                    : 'bg-accent-soft text-accent-text border-accent-line hover:border-accent-text hover:text-accent-text hover:bg-accent-soft'}
                   onClick={() => {
                     setTopic(t);
                     setError(undefined);
@@ -62,8 +65,7 @@ export default function PracticeSetup() {
 
           <div className="space-y-2">
             <div className="text-label text-fg">Level</div>
-            <SegmentedControl label="Level" options={[...LEVELS]} value={level} onChange={setLevel} />
-            <p className="text-caption text-muted">{LEVELS.find((l) => l.value === level)?.description}</p>
+            <SegmentedControl label="Level" options={[...LEVELS]} value={level} onChange={setLevel} tone="accent" />
           </div>
 
           <Button type="submit" size="lg" block>
