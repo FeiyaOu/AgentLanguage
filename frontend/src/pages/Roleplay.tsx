@@ -5,7 +5,7 @@ import type { Roleplay as RoleplayType, RoleplayMessage } from '../types';
 import { startRoleplay, sendRoleplayMessage, getRoleplayHint, endRoleplay } from '../api';
 import { FocusHeader } from '../components/FocusHeader';
 import { Avatar, Button, ProgressBar, cn, toast } from '../ui';
-import { Briefing, BriefingSkeleton } from '../roleplay/Briefing';
+import { Briefing, PreparingState } from '../roleplay/Briefing';
 import { MissionStrip } from '../roleplay/MissionStrip';
 import { MessageList } from '../roleplay/MessageList';
 import { CoachDialog } from '../roleplay/CoachDialog';
@@ -223,7 +223,14 @@ function RoleplaySession({ topic, difficulty, personaType, customDescription, pe
   // remounts (a remount would replay its entrance animation and flash).
   const header =
     phase === 'starting' ? (
-      <FocusHeader title="Preparing conversation" subtitle={topic} onExit={() => navigate('/roleplay')} confirmExit={false} />
+      <FocusHeader
+        // The partner is already known from setup, so the header matches the briefing from the start.
+        leading={personaName ? avatar : undefined}
+        title={personaName ?? 'Preparing conversation'}
+        subtitle={topic}
+        onExit={() => navigate('/roleplay')}
+        confirmExit={false}
+      />
     ) : phase === 'briefing' ? (
       <FocusHeader leading={avatar} title={name} subtitle={topic} onExit={leave} confirmExit={false} />
     ) : (
@@ -270,7 +277,7 @@ function RoleplaySession({ topic, difficulty, personaType, customDescription, pe
     <div className={cn(phase === 'chat' && 'flex h-dvh flex-col')}>
       {header}
 
-      {phase === 'starting' && <BriefingSkeleton />}
+      {phase === 'starting' && <PreparingState personaName={personaName} personaEmoji={personaEmoji} topic={topic} />}
 
       {phase === 'briefing' && roleplay && (
         <Briefing

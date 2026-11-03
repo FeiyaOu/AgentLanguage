@@ -12,26 +12,15 @@ import {
   Field,
   Input,
   SegmentedControl,
-  Skeleton,
   Textarea,
   cn,
   duration,
   ease,
 } from '../ui';
 import { LEVELS, ROLEPLAY_SCENARIOS, type Level } from '../content/suggestions';
+import { CastingCard } from '../roleplay/CastingCard';
 
 const CUSTOM = 'custom';
-
-function PartnerSkeleton() {
-  return (
-    <div className="rounded-card border border-line p-4">
-      <Skeleton className="size-10 rounded-pill" />
-      <Skeleton className="mt-3 h-3.5 w-2/3" />
-      <Skeleton className="mt-2 h-3 w-full" />
-      <Skeleton className="mt-1.5 h-3 w-4/5" />
-    </div>
-  );
-}
 
 export default function RoleplaySetup() {
   const navigate = useNavigate();
@@ -170,34 +159,56 @@ export default function RoleplaySetup() {
             )}
 
             {showPartners && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-busy={loadingPersonas}>
-                {loadingPersonas
-                  ? Array.from({ length: 4 }).map((_, i) => <PartnerSkeleton key={i} />)
-                  : personas.map((p, i) => (
-                      <motion.button
-                        key={p.id}
-                        type="button"
-                        aria-pressed={selected === p.id}
-                        onClick={() => {
-                          setSelected(p.id);
-                          setPartnerError(undefined);
-                        }}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: duration.base, ease: ease.enter, delay: i * 0.05 }}
-                        className={cn(
-                          'rounded-card border p-4 text-left outline-none',
-                          'transition-colors duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-ring',
-                          selected === p.id
-                            ? 'border-accent bg-accent-soft'
-                            : 'border-line bg-surface hover:border-line-strong',
-                        )}
-                      >
-                        <Avatar name={p.name} emoji={p.emoji} />
-                        <div className="mt-3 text-body-sm font-semibold text-fg">{p.name}</div>
-                        <div className="mt-1 text-caption text-muted line-clamp-2">{p.traits}</div>
-                      </motion.button>
-                    ))}
+              <div className="relative">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-busy={loadingPersonas}>
+                  {Array.from({ length: loadingPersonas ? 4 : personas.length }).map((_, i) => {
+                    const p = loadingPersonas ? undefined : personas[i];
+                    return (
+                      // Skeleton and card share one grid cell, so the swap is a cross-fade
+                      // in place: no empty frame, no layout jump.
+                      <div key={i} className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+                        <AnimatePresence>
+                          {!p ? (
+                            <motion.div
+                              key="skeleton"
+                              initial={{ opacity: 0.4, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, transition: { duration: duration.fast } }}
+                              transition={{ duration: duration.base, ease: ease.enter, delay: i * 0.06 }}
+                            >
+                              <CastingCard index={i} />
+                            </motion.div>
+                          ) : (
+                            <motion.button
+                              key={p.id}
+                              type="button"
+                              aria-pressed={selected === p.id}
+                              onClick={() => {
+                                setSelected(p.id);
+                                setPartnerError(undefined);
+                              }}
+                              initial={{ opacity: 0, scale: 0.98 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: duration.base, ease: ease.enter, delay: i * 0.06 }}
+                              className={cn(
+                                'rounded-card border p-4 text-left outline-none',
+                                'transition-colors duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-ring',
+                                selected === p.id
+                                  ? 'border-accent bg-accent-soft'
+                                  : 'border-line bg-surface hover:border-line-strong',
+                              )}
+                            >
+                              <Avatar name={p.name} emoji={p.emoji} />
+                              <div className="mt-3 text-body-sm font-semibold text-fg">{p.name}</div>
+                              <div className="mt-1 text-caption text-muted line-clamp-2">{p.traits}</div>
+                            </motion.button>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
+
               </div>
             )}
 

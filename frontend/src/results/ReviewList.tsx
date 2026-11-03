@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChatBubbleLeftEllipsisIcon, CheckIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Button, cn, duration, ease } from '../ui';
 
@@ -12,13 +12,18 @@ export type ReviewItem = {
   feedback: string;
 };
 
-function ReviewRow({ item, onAskTutor }: { item: ReviewItem; onAskTutor: (item: ReviewItem) => void }) {
+function ReviewRow({ item, index, onAskTutor }: { item: ReviewItem; index: number; onAskTutor: (item: ReviewItem) => void }) {
+  const reduceMotion = useReducedMotion();
   // Mistakes start open: they're what the learner came here to review.
   const [open, setOpen] = useState(!item.correct);
   const panelId = `review-${item.num}`;
 
   return (
-    <li
+    <motion.li
+      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ duration: 0.35, ease: ease.enter, delay: reduceMotion ? 0 : Math.min(index, 5) * 0.05 }}
       className={cn(
         'rounded-card border border-line border-l-[3px] bg-surface',
         item.correct ? 'border-l-success' : 'border-l-danger',
@@ -41,9 +46,9 @@ function ReviewRow({ item, onAskTutor }: { item: ReviewItem; onAskTutor: (item: 
           <span className="sr-only">{item.correct ? 'Correct' : 'Incorrect'}</span>
         </span>
         <span className="shrink-0 text-caption tabular-nums text-subtle">Q{item.num}</span>
-        <span className={cn('min-w-0 flex-1 text-body-sm text-fg', !open && 'truncate')}>{item.question}</span>
+        <span className="min-w-0 flex-1 break-words text-body-sm text-fg">{item.question}</span>
         <ChevronDownIcon
-          className={cn('size-4 shrink-0 text-muted transition-transform duration-base ease-standard', open && 'rotate-180')}
+          className={cn('size-4 shrink-0 text-muted transition-transform duration-base ease-standard motion-reduce:transition-none', open && 'rotate-180')}
           aria-hidden
         />
       </button>
@@ -55,7 +60,10 @@ function ReviewRow({ item, onAskTutor }: { item: ReviewItem; onAskTutor: (item: 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: duration.base, ease: ease.standard }}
+            transition={{
+              height: { duration: reduceMotion ? 0 : 0.3, ease: ease.standard },
+              opacity: { duration: reduceMotion ? 0 : duration.fast, delay: open && !reduceMotion ? 0.05 : 0 },
+            }}
             className="overflow-hidden"
           >
             <div className="space-y-3 px-4 pb-4 pl-[3.25rem]">
@@ -82,15 +90,15 @@ function ReviewRow({ item, onAskTutor }: { item: ReviewItem; onAskTutor: (item: 
           </motion.div>
         )}
       </AnimatePresence>
-    </li>
+    </motion.li>
   );
 }
 
 export function ReviewList({ items, onAskTutor }: { items: ReviewItem[]; onAskTutor: (item: ReviewItem) => void }) {
   return (
     <ul className="space-y-2">
-      {items.map((item) => (
-        <ReviewRow key={item.num} item={item} onAskTutor={onAskTutor} />
+      {items.map((item, index) => (
+        <ReviewRow key={item.num} item={item} index={index} onAskTutor={onAskTutor} />
       ))}
     </ul>
   );

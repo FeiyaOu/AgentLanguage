@@ -47,6 +47,8 @@
   --color-raised: var(--sand-0);
   --color-line: var(--sand-200);
   --color-line-strong: var(--sand-300);
+  /* Loading placeholders: a step darker than sunken, so they read on white cards and the canvas. */
+  --color-skeleton: var(--sand-200);
   --color-fg: var(--sand-900);
   --color-muted: var(--sand-600);
   --color-subtle: var(--sand-500);
@@ -89,6 +91,7 @@
   --color-raised: var(--sand-850);
   --color-line: var(--sand-800);
   --color-line-strong: var(--sand-700);
+  --color-skeleton: var(--sand-800);
   --color-fg: var(--sand-100);
   --color-muted: var(--sand-400);
   --color-subtle: var(--sand-500);

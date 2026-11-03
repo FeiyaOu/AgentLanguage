@@ -20,6 +20,7 @@ export default {
           DEFAULT: token('line'),
           strong: token('line-strong'),
         },
+        skeleton: token('skeleton'),
         fg: token('fg'),
         muted: token('muted'),
         subtle: token('subtle'),

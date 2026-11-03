@@ -68,12 +68,14 @@ export function ThemedLottie({
   const reduceMotion = useReducedMotion();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const lottieRef = useRef<LottieHandle>(null);
+  const inViewRef = useRef(true);
   const themed = useMemo(() => applyPlaceholders(animationData), [animationData]);
 
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el || reduceMotion || !loop) return;
     const observer = new IntersectionObserver(([entry]) => {
+      inViewRef.current = entry.isIntersecting;
       if (entry.isIntersecting) lottieRef.current?.play();
       else lottieRef.current?.pause();
     });
@@ -82,7 +84,15 @@ export function ThemedLottie({
   }, [reduceMotion, loop]);
 
   const showFinalFrame = () => {
-    if (reduceMotion) lottieRef.current?.seek(reducedMotionFrame ?? { percent: 100 });
+    if (reduceMotion) {
+      lottieRef.current?.pause();
+      lottieRef.current?.seek(reducedMotionFrame ?? { percent: 100 });
+    } else if (loop) {
+      // The observer can fire before the lazy player is ready. Apply its latest
+      // decision again once the engine has loaded instead of losing that event.
+      if (inViewRef.current) lottieRef.current?.play();
+      else lottieRef.current?.pause();
+    }
   };
 
   return (
@@ -93,7 +103,7 @@ export function ThemedLottie({
       aria-label={label}
       aria-hidden={label ? undefined : true}
     >
-      <Suspense fallback={null}>
+      <Suspense fallback={<div aria-hidden className="size-full rounded-card bg-accent-soft animate-pulse motion-reduce:animate-none" />}>
         <Lottie
           lottieRef={lottieRef}
           src={themed}

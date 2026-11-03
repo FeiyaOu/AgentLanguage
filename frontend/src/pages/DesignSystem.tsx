@@ -32,7 +32,7 @@ import { WRITING_DRAWN_FRAME, successAnimation, writingAnimation } from '../cont
 /** Live style guide: every token and component state in one place. */
 
 const colorGroups: { title: string; tokens: string[] }[] = [
-  { title: 'Surfaces', tokens: ['canvas', 'surface', 'sunken', 'raised', 'line', 'line-strong'] },
+  { title: 'Surfaces', tokens: ['canvas', 'surface', 'sunken', 'raised', 'line', 'line-strong', 'skeleton'] },
   { title: 'Text', tokens: ['fg', 'muted', 'subtle'] },
   { title: 'Accent', tokens: ['accent', 'accent-hover', 'accent-soft', 'accent-line', 'accent-text'] },
   {
