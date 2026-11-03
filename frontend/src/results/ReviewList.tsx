@@ -14,8 +14,7 @@ export type ReviewItem = {
 
 function ReviewRow({ item, index, onAskTutor }: { item: ReviewItem; index: number; onAskTutor: (item: ReviewItem) => void }) {
   const reduceMotion = useReducedMotion();
-  // Mistakes start open: they're what the learner came here to review.
-  const [open, setOpen] = useState(!item.correct);
+  const [open, setOpen] = useState(false);
   const panelId = `review-${item.num}`;
 
   return (
@@ -83,7 +82,7 @@ function ReviewRow({ item, index, onAskTutor }: { item: ReviewItem; index: numbe
               </dl>
               {item.feedback && <p className="text-body-sm text-muted">{item.feedback}</p>}
               <Button variant="ghost" size="sm" onClick={() => onAskTutor(item)} className="-ml-3">
-                <ChatBubbleLeftEllipsisIcon className="size-4" />
+                <ChatBubbleLeftEllipsisIcon className="size-4 text-accent-text" />
                 Ask the tutor
               </Button>
             </div>

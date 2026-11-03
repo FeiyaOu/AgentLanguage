@@ -126,6 +126,11 @@ function FeedbackView({ result, topic, difficulty, exercises, answers }: Feedbac
   const total = review.length || 1;
   const percentage = review.length ? Math.round((correctCount / total) * 100) : result.score_percentage;
   const weakAreas = useMemo(() => result.weak_areas ?? [], [result.weak_areas]);
+  const visibleWeakAreas = weakAreas.slice(0, 2);
+  const recommendationWords = (result.recommendations ?? '').trim().split(/\s+/).filter(Boolean);
+  const shortRecommendation = recommendationWords.length > 79
+    ? `${recommendationWords.slice(0, 79).join(' ')}…`
+    : (result.recommendations ?? '');
 
   // Save for signed-in users. A guest who logs in on this page "claims" the result.
   useEffect(() => {
@@ -207,7 +212,7 @@ function FeedbackView({ result, topic, difficulty, exercises, answers }: Feedbac
               <h2 className="text-heading text-fg">What to focus on</h2>
               {weakAreas.length > 0 && (
                 <ul className="mt-3 flex flex-wrap gap-2">
-                  {weakAreas.map((area) => (
+                  {visibleWeakAreas.map((area) => (
                     <li key={area}>
                       <Badge tone="accent" className="h-7 px-2.5 text-body-sm">
                         {area}
@@ -216,7 +221,7 @@ function FeedbackView({ result, topic, difficulty, exercises, answers }: Feedbac
                   ))}
                 </ul>
               )}
-              {result.recommendations && <p className="mt-3 text-body-sm text-muted">{result.recommendations}</p>}
+              {shortRecommendation && <p className="mt-3 text-body-sm text-muted">{shortRecommendation}</p>}
             </div>
           </div>
         </Card>

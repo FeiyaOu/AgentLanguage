@@ -161,6 +161,9 @@ Return ONLY a JSON object with this structure:
     "suggested_exercise_type": "banked_cloze"
 }}
 This is just an example, generate different feedback.
+Return at most 2 weak_areas, prioritizing the most useful improvements.
+Keep recommendations concise: 1–3 short sentences, aim for 40–60 words,
+and use strictly fewer than 80 words in total. Give specific, actionable advice.
 """
 
         response = self.llm.chat.completions.create(
