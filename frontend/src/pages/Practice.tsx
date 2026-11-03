@@ -58,23 +58,48 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
   const [verdicts, setVerdicts] = useState<(boolean | null)[]>(() => (provided ?? []).map(() => null));
   const [boards, setBoards] = useState<Record<number, ReorderBoard>>(() => boardsFor(provided ?? []));
   const [submitting, setSubmitting] = useState(false);
+  const [remainingLoading, setRemainingLoading] = useState(false);
+  const [remainingError, setRemainingError] = useState(false);
+  const totalQuestions = provided?.length || 5;
   const shake = useAnimationControls();
   const questionRef = useRef<HTMLDivElement>(null);
   const fetched = useRef(false);
 
-  // State updates happen only in the request callbacks; the initial state already says "generating".
+  const fetchRemaining = useCallback(async (first: Exercise) => {
+    setRemainingLoading(true);
+    setRemainingError(false);
+    try {
+      const firstContent = first.type === 'sentence_reordering' ? first.correct_answer : first.question;
+      const { exercises: rest } = await generatePractice(topic, difficulty, focusAreas ?? [], 4, [firstContent]);
+      setExercises((prev) => [...prev, ...rest]);
+      setAnswers((prev) => [...prev, ...rest.map(() => '')]);
+      setVerdicts((prev) => [...prev, ...rest.map(() => null)]);
+      const restBoards = boardsFor(rest);
+      setBoards((prev) => ({
+        ...prev,
+        ...Object.fromEntries(Object.entries(restBoards).map(([i, board]) => [Number(i) + 1, board])),
+      }));
+    } catch {
+      setRemainingError(true);
+    } finally {
+      setRemainingLoading(false);
+    }
+  }, [topic, difficulty, focusAreas]);
+
+  // Render the first question before requesting the remaining batch.
   const fetchExercises = useCallback(() => {
-    generatePractice(topic, difficulty, focusAreas ?? [])
+    generatePractice(topic, difficulty, focusAreas ?? [], 1)
       .then(({ exercises }) => {
         setExercises(exercises);
         setAnswers(exercises.map(() => ''));
         setVerdicts(exercises.map(() => null));
         setBoards(boardsFor(exercises));
         setIndex(0);
+        void fetchRemaining(exercises[0]);
       })
       .catch(() => setLoadError(true))
       .finally(() => setGenerating(false));
-  }, [topic, difficulty, focusAreas]);
+  }, [topic, difficulty, focusAreas, fetchRemaining]);
 
   useEffect(() => {
     // Guard against StrictMode's double effect, which would generate twice.
@@ -92,7 +117,8 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
   const exercise = exercises[index];
   const answer = answers[index] ?? '';
   const verdict = verdicts[index] ?? null;
-  const isLast = index === exercises.length - 1;
+  const isLast = index === totalQuestions - 1;
+  const awaitingNext = index === exercises.length - 1 && exercises.length < totalQuestions;
   const board = boards[index];
   const isReorder = exercise?.type === 'sentence_reordering';
   const canCheck = isReorder ? !!board && board.available.length === 0 && board.selected.length > 0 : !!answer;
@@ -137,9 +163,11 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
   };
 
   const primary = () => {
-    if (submitting) return;
+    if (submitting || (verdict !== null && awaitingNext && remainingLoading)) return;
     if (verdict === null) {
       if (canCheck) check();
+    } else if (awaitingNext) {
+      void fetchRemaining(exercises[0]);
     } else if (isLast) {
       void finish();
     } else {
@@ -174,7 +202,7 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const segments: SegmentState[] = exercises.map((_, i) =>
+  const segments: SegmentState[] = Array.from({ length: totalQuestions }, (_, i) =>
     verdicts[i] === true ? 'correct' : verdicts[i] === false ? 'incorrect' : i === index ? 'current' : 'upcoming',
   );
 
@@ -182,11 +210,11 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     <FocusHeader
       title={topic}
       subtitle={<span className="capitalize">{difficulty}</span>}
-      progress={exercises.length > 0 ? <SegmentedProgress segments={segments} currentIndex={index} label={`Question ${index + 1} of ${exercises.length}`} /> : null}
+      progress={exercises.length > 0 ? <SegmentedProgress segments={segments} currentIndex={index} label={`Question ${index + 1} of ${totalQuestions}`} /> : null}
       actions={
         exercises.length > 0 ? (
           <span className="text-caption text-muted tabular-nums">
-            {index + 1}/{exercises.length}
+            {index + 1}/{totalQuestions}
           </span>
         ) : null
       }
@@ -262,12 +290,20 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
         verdict={verdict}
         correctAnswer={exercise.correct_answer}
         numberKeys={!isReorder}
-        primaryLabel={verdict === null ? 'Check' : isLast ? 'See results' : 'Next'}
-        primaryDisabled={verdict === null && !canCheck && supported}
+        primaryLabel={verdict === null ? 'Check' : awaitingNext ? remainingError ? 'Retry loading' : 'Preparing questions…' : isLast ? 'See results' : 'Next'}
+        primaryDisabled={(verdict === null && !canCheck && supported) || (verdict !== null && awaitingNext && remainingLoading)}
         loading={submitting}
         previousDisabled={index === 0}
         onPrevious={() => setIndex((i) => Math.max(0, i - 1))}
-        onPrimary={supported ? primary : () => (isLast ? void finish() : setIndex((i) => i + 1))}
+        onPrimary={supported ? primary : () => {
+          if (awaitingNext) {
+            if (!remainingLoading) void fetchRemaining(exercises[0]);
+          } else if (isLast) {
+            void finish();
+          } else {
+            setIndex((i) => i + 1);
+          }
+        }}
       />
     </>
   );

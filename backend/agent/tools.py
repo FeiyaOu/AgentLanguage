@@ -33,14 +33,14 @@ class GeneratePracticeTool(Tool):
         )
         self.llm = llm_client
     
-    def execute(self, topic: str, focus_areas: List[str] = None, difficulty: str = "beginner") -> str:
+    def execute(self, topic: str, focus_areas: List[str] = None, difficulty: str = "beginner", count: int = 5, exclude_questions: List[str] = None) -> str:
         """Generate practice exercises using LLM."""
         
         focus_text = ""
         if focus_areas:
             focus_text = f"\nFocus on these weak areas: {', '.join(focus_areas)}"
 
-        prompt = f"""Generate 5 practice exercises for learning English in this context: {topic}
+        prompt = f"""Generate {count} practice exercises for learning English in this context: {topic}
 Difficulty level: {difficulty}{focus_text}
 
 IMPORTANT CONSTRAINTS:
@@ -52,7 +52,7 @@ Supported exercise types (ONLY these):
 2. "banked_cloze": A sentence with a single blank ("___") + options bank. User selects the best option.
 3. "sentence_reordering": Provide shuffled word tokens as bubbles; user taps to reorder into a correct sentence.
 
-Return ONLY a JSON array of 5 exercises. No markdown, no explanation.
+Return ONLY a JSON array of {count} exercises. No markdown, no explanation.
 
 Schemas:
 
@@ -85,6 +85,9 @@ Guidelines:
 - Keep sentences short and conversational.
 - For "sentence_reordering", tokens MUST be intentionally shuffled (not already in the correct order).
 """
+
+        if exclude_questions:
+            prompt += "\nAvoid repeating this existing exercise content (question text, or target sentence for reordering). Generic instructions may be reused: " + json.dumps(exclude_questions)
 
         response = self.llm.chat.completions.create(
             model=LLM_MODEL,

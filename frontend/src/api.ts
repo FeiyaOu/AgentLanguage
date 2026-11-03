@@ -13,12 +13,16 @@ const api = axios.create({
 export const generatePractice = async (
   topic: string,
   difficulty: string = 'beginner',
-  focusAreas: string[] = []
+  focusAreas: string[] = [],
+  count = 5,
+  excludeQuestions: string[] = [],
 ): Promise<{ exercises: Exercise[]; message: string }> => {
   const response = await api.post('/api/generate-practice', {
     topic,
     difficulty,
     focus_areas: focusAreas,
+    count,
+    exclude_questions: excludeQuestions,
   });
   return response.data;
 };
