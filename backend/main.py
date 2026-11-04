@@ -10,6 +10,8 @@ from collections import defaultdict
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from agent.streaming import question_objects
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
@@ -249,6 +251,55 @@ class EndRoleplayResponse(BaseModel):
 def root():
     """Health check endpoint."""
     return {"status": "ok", "message": "Language Learning Agent API"}
+
+
+@app.post("/api/generate-practice/stream")
+def stream_practice(request: GeneratePracticeRequest):
+    def events():
+        chunks = None
+        emitted = 0
+        seen = {" ".join(text.casefold().split()) for text in request.exclude_questions}
+        try:
+            chunks = GeneratePracticeTool(agent.client).execute(
+                topic=request.topic, difficulty=request.difficulty,
+                focus_areas=request.focus_areas, count=request.count,
+                exclude_questions=request.exclude_questions, stream=True,
+            )
+            for item in question_objects(chunks):
+                try:
+                    exercise = Exercise(**item)
+                    if not exercise.question.strip() or not exercise.correct_answer.strip():
+                        continue
+                    if exercise.type in ("multiple_choice", "banked_cloze"):
+                        if len(exercise.options) != 4 or exercise.correct_answer not in exercise.options:
+                            continue
+                    elif exercise.type == "sentence_reordering":
+                        if not exercise.tokens:
+                            continue
+                    else:
+                        continue
+                    content = exercise.correct_answer if exercise.type == "sentence_reordering" else exercise.question
+                    identity = " ".join(content.casefold().split())
+                    if identity in seen:
+                        continue
+                    seen.add(identity)
+                except (ValueError, TypeError):
+                    continue
+                yield json.dumps({"type": "question", "exercise": exercise.model_dump()}) + "\n"
+                emitted += 1
+                if emitted == request.count:
+                    break
+            if emitted != request.count:
+                raise ValueError("Incomplete question set")
+            yield json.dumps({"type": "done"}) + "\n"
+        except Exception:
+            yield json.dumps({"type": "error", "message": "Couldn't finish preparing questions. Retry to load the rest."}) + "\n"
+        finally:
+            if chunks is not None:
+                chunks.close()
+    return StreamingResponse(events(), media_type="application/x-ndjson", headers={
+        "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no",
+    })
 
 
 @app.post("/api/generate-practice", response_model=GeneratePracticeResponse)

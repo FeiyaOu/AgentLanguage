@@ -33,7 +33,7 @@ class GeneratePracticeTool(Tool):
         )
         self.llm = llm_client
     
-    def execute(self, topic: str, focus_areas: List[str] = None, difficulty: str = "beginner", count: int = 5, exclude_questions: List[str] = None) -> str:
+    def execute(self, topic: str, focus_areas: List[str] = None, difficulty: str = "beginner", count: int = 5, exclude_questions: List[str] = None, stream: bool = False):
         """Generate practice exercises using LLM."""
         
         focus_text = ""
@@ -101,9 +101,20 @@ Guidelines:
                 )},
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.7
+            temperature=0.7,
+            stream=stream,
         )
-        
+        if stream:
+            def chunks():
+                try:
+                    for chunk in response:
+                        if chunk.choices:
+                            text = chunk.choices[0].delta.content
+                            if text:
+                                yield text
+                finally:
+                    response.close()
+            return chunks()
         return response.choices[0].message.content
 
 

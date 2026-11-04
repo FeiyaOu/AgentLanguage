@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isAxiosError } from 'axios';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, useAnimationControls } from 'framer-motion';
 import type { Exercise } from '../types';
-import { generatePractice } from '../api';
+import { streamPractice } from '../api';
 import { FocusHeader } from '../components/FocusHeader';
 import { Button, EmptyState, SegmentedProgress, type SegmentState } from '../ui';
 import { isCorrect, TYPE_PROMPT } from '../practice/grade';
@@ -65,58 +64,59 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
   const questionRef = useRef<HTMLDivElement>(null);
   const fetched = useRef(false);
 
-  const fetchRemaining = useCallback(async (first: Exercise) => {
+  const received = useRef<Exercise[]>(provided ?? []);
+  const streamController = useRef<AbortController | null>(null);
+  const cleanupTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const fetchExercises = useCallback(async () => {
+    if (streamController.current || received.current.length >= 5) return;
+    const controller = new AbortController();
+    streamController.current = controller;
     setRemainingLoading(true);
     setRemainingError(undefined);
+    setLoadError(false);
     try {
-      const firstContent = first.type === 'sentence_reordering' ? first.correct_answer : first.question;
-      const { exercises: rest } = await generatePractice(topic, difficulty, focusAreas ?? [], 4, [firstContent]);
-      setExercises((prev) => [...prev, ...rest]);
-      setAnswers((prev) => [...prev, ...rest.map(() => '')]);
-      setVerdicts((prev) => [...prev, ...rest.map(() => null)]);
-      const restBoards = boardsFor(rest);
-      setBoards((prev) => ({
-        ...prev,
-        ...Object.fromEntries(Object.entries(restBoards).map(([i, board]) => [Number(i) + 1, board])),
-      }));
-    } catch (error) {
-      const status = isAxiosError(error) ? error.response?.status : undefined;
-      setRemainingError(status === 502
-        ? "Couldn't prepare enough distinct questions. Your answer is saved; please retry."
-        : status === 429
-          ? 'Too many requests. Please wait a moment before retrying.'
-          : "Couldn't load the remaining questions. Check your connection and try again. Your answer is saved.");
+      await streamPractice(topic, difficulty, focusAreas ?? [], received.current, (next) => {
+        const position = received.current.length;
+        received.current = [...received.current, next];
+        setExercises(received.current);
+        setAnswers((prev) => [...prev, '']);
+        setVerdicts((prev) => [...prev, null]);
+        if (next.type === 'sentence_reordering') {
+          const nextBoard = buildBoard(next);
+          setBoards((prev) => ({ ...prev, [position]: nextBoard }));
+        }
+        setGenerating(false);
+      }, controller.signal);
+    } catch {
+      if (!controller.signal.aborted && received.current.length < 5) {
+        if (received.current.length === 0) setLoadError(true);
+        else setRemainingError("Couldn't load the remaining questions. Your answers are saved; retry to continue.");
+      }
     } finally {
-      setRemainingLoading(false);
+      if (!controller.signal.aborted) {
+        streamController.current = null;
+        setRemainingLoading(false);
+        setGenerating(false);
+      }
     }
   }, [topic, difficulty, focusAreas]);
 
-  // Render the first question before requesting the remaining batch.
-  const fetchExercises = useCallback(() => {
-    generatePractice(topic, difficulty, focusAreas ?? [], 1)
-      .then(({ exercises }) => {
-        setExercises(exercises);
-        setAnswers(exercises.map(() => ''));
-        setVerdicts(exercises.map(() => null));
-        setBoards(boardsFor(exercises));
-        setIndex(0);
-        void fetchRemaining(exercises[0]);
-      })
-      .catch(() => setLoadError(true))
-      .finally(() => setGenerating(false));
-  }, [topic, difficulty, focusAreas, fetchRemaining]);
-
   useEffect(() => {
-    // Guard against StrictMode's double effect, which would generate twice.
-    if (fetched.current || provided?.length) return;
-    fetched.current = true;
-    fetchExercises();
+    clearTimeout(cleanupTimer.current);
+    if (!fetched.current && !provided?.length) {
+      fetched.current = true;
+      void fetchExercises();
+    }
+    // Defer cleanup one tick so StrictMode's setup replay reuses the request.
+    return () => {
+      cleanupTimer.current = setTimeout(() => streamController.current?.abort(), 0);
+    };
   }, [fetchExercises, provided]);
 
   const retry = () => {
     setGenerating(true);
-    setLoadError(false);
-    fetchExercises();
+    void fetchExercises();
   };
 
   const exercise = exercises[index];
@@ -162,7 +162,7 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
     if (verdict === null) {
       if (canCheck) check();
     } else if (awaitingNext) {
-      void fetchRemaining(exercises[0]);
+      void fetchExercises();
     } else if (isLast) {
       void finish();
     } else {
@@ -292,7 +292,7 @@ function PracticeSession({ topic, difficulty, focusAreas, exercises: provided }:
         onPrevious={() => setIndex((i) => Math.max(0, i - 1))}
         onPrimary={supported ? primary : () => {
           if (awaitingNext) {
-            if (!remainingLoading) void fetchRemaining(exercises[0]);
+            if (!remainingLoading) void fetchExercises();
           } else if (isLast) {
             void finish();
           } else {
