@@ -1,7 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { ArrowPathIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import { Badge, Button, Card, EmptyState, Skeleton, ThemedLottie, buttonVariants, cn, duration, ease } from '../ui';
+import { Badge, Button, Card, EmptyState, Skeleton, ThemedLottie, buttonVariants, cn } from '../ui';
 import { WRITING_DRAWN_FRAME, writingAnimation } from '../content/animations';
 import { useAuth } from '../auth/AuthContext';
 import { collectMistakes, useHistory, type PracticeRecord } from '../history/store';
@@ -20,15 +19,11 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RecordRow({ record, index }: { record: PracticeRecord; index: number }) {
+function RecordRow({ record }: { record: PracticeRecord }) {
   const pct = record.total ? Math.round((record.correct / record.total) * 100) : 0;
   const wrong = record.total - record.correct;
   return (
-    <motion.li
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: duration.base, ease: ease.enter, delay: Math.min(index, 8) * 0.03 }}
-    >
+    <li>
       <Link
         to={`/history/${record.id}`}
         className={cn(
@@ -48,7 +43,7 @@ function RecordRow({ record, index }: { record: PracticeRecord; index: number })
         </Badge>
         <ChevronRightIcon className="size-4 shrink-0 text-subtle" aria-hidden />
       </Link>
-    </motion.li>
+    </li>
   );
 }
 
@@ -132,8 +127,8 @@ export default function History() {
                 Sessions
               </h2>
               <ul className="space-y-2">
-                {records.map((record, i) => (
-                  <RecordRow key={record.id} record={record} index={i} />
+                {records.map((record) => (
+                  <RecordRow key={record.id} record={record} />
                 ))}
               </ul>
             </section>
