@@ -89,15 +89,15 @@ class RateLimiter:
         self._hits[ip].append(time.time())
 
 
-tutor_limiter = RateLimiter(per_minute=10, per_hour=30)
-roleplay_start_limiter = RateLimiter(per_minute=5, per_hour=15)
-roleplay_msg_limiter = RateLimiter(per_minute=12, per_hour=60)
-persona_suggest_limiter = RateLimiter(per_minute=5, per_hour=15)
+tutor_limiter = RateLimiter(per_minute=30, per_hour=200)
+roleplay_start_limiter = RateLimiter(per_minute=20, per_hour=100)
+roleplay_msg_limiter = RateLimiter(per_minute=60, per_hour=500)
+persona_suggest_limiter = RateLimiter(per_minute=20, per_hour=100)
 
 # ---------------------------------------------------------------------------
 # Concurrent session tracker & session garbage collection
 # ---------------------------------------------------------------------------
-MAX_SESSIONS_PER_IP = 2
+MAX_SESSIONS_PER_IP = 10
 MAX_HINTS_PER_SESSION = 3
 SESSION_TTL_SECONDS = 30 * 60  # 30 minutes
 MAX_ROLEPLAY_MSG_WORDS = 100

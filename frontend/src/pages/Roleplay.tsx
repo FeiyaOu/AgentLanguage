@@ -63,6 +63,7 @@ function RoleplaySession({ topic, difficulty, personaType, customDescription, pe
   const [gettingHint, setGettingHint] = useState(false);
   const [coachFeedback, setCoachFeedback] = useState<RoleplayMessage | null>(null);
   const [endOpen, setEndOpen] = useState(false);
+  const nearBottom = useRef(true);
 
   const name = roleplay?.persona_name || personaName || 'Your partner';
   const ended = achieved || sessionOver || turnsRemaining <= 0;
@@ -100,8 +101,10 @@ function RoleplaySession({ topic, difficulty, personaType, customDescription, pe
   }, [begin]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, sending]);
+    if (nearBottom.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages, sending, showBriefing]);
 
   useEffect(() => {
     if (!ended || showBriefing) return;
@@ -307,7 +310,13 @@ function RoleplaySession({ topic, difficulty, personaType, customDescription, pe
 
           <MissionStrip goal={roleplay.user_goal} scene={roleplay.scene_context} />
 
-          <div className="flex-1 overflow-y-auto">
+          <div
+            className="flex-1 overflow-y-auto"
+            onScroll={(event) => {
+              const container = event.currentTarget;
+              nearBottom.current = container.scrollHeight - container.scrollTop - container.clientHeight < 120;
+            }}
+          >
             <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
               <MessageList messages={messages} personaName={name} personaEmoji={personaEmoji} typing={sending} />
               <div ref={bottomRef} />
