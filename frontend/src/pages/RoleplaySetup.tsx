@@ -95,6 +95,9 @@ export default function RoleplaySetup() {
   };
 
   const showPartners = loadingPersonas || personas.length > 0;
+  const hasPartner = selected === CUSTOM
+    ? customDescription.trim().length > 0
+    : personas.some((persona) => persona.id === selected);
 
   return (
     <div className="mx-auto max-w-2xl px-4 sm:px-6 py-10 sm:py-16">
@@ -118,7 +121,15 @@ export default function RoleplaySetup() {
             </Field>
             <div className="flex flex-wrap gap-2">
               {ROLEPLAY_SCENARIOS.map((s) => (
-                <Chip key={s} size="sm" selected={scenario === s} onClick={() => changeScenario(s)}>
+                <Chip
+                  key={s}
+                  size="sm"
+                  selected={scenario === s}
+                  className={scenario === s
+                    ? 'bg-accent-soft text-accent-text border-accent-text ring-1 ring-accent-text'
+                    : 'bg-accent-soft text-accent-text border-accent-line hover:border-accent-text hover:text-accent-text hover:bg-accent-soft'}
+                  onClick={() => changeScenario(s)}
+                >
                   {s}
                 </Chip>
               ))}
@@ -127,13 +138,20 @@ export default function RoleplaySetup() {
 
           <div className="space-y-2">
             <div className="text-label text-fg">Level</div>
-            <SegmentedControl label="Level" options={[...LEVELS]} value={level} onChange={setLevel} />
-            <p className="text-caption text-muted">{LEVELS.find((l) => l.value === level)?.description}</p>
+            <SegmentedControl label="Level" options={[...LEVELS]} value={level} onChange={setLevel} tone="accent" />
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-label text-fg">Conversation partner</div>
+              <div className="flex items-center gap-2 text-label text-fg">
+                Conversation partner
+                {loadingPersonas && (
+                  <span role="status" className="inline-flex">
+                    <span aria-hidden className="size-4 rounded-full border-2 border-accent-line/60 border-t-accent/70 animate-[spin_1.4s_linear_infinite]" />
+                    <span className="sr-only">Finding conversation partners…</span>
+                  </span>
+                )}
+              </div>
               {personas.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={findPartners} className="-mr-2">
                   <ArrowPathIcon className="size-4" />
@@ -143,7 +161,12 @@ export default function RoleplaySetup() {
             </div>
 
             {!showPartners && (
-              <Button variant="secondary" block onClick={findPartners} className="h-12 border-dashed">
+              <Button
+                variant="secondary"
+                block
+                onClick={findPartners}
+                className="h-12 border-accent-line bg-accent-soft text-accent-text hover:border-accent-text hover:bg-accent-soft"
+              >
                 <UserGroupIcon className="size-5" />
                 Find conversation partners
               </Button>
@@ -164,22 +187,11 @@ export default function RoleplaySetup() {
                   {Array.from({ length: loadingPersonas ? 4 : personas.length }).map((_, i) => {
                     const p = loadingPersonas ? undefined : personas[i];
                     return (
-                      // Skeleton and card share one grid cell, so the swap is a cross-fade
-                      // in place: no empty frame, no layout jump.
                       <div key={i} className="grid [&>*]:col-start-1 [&>*]:row-start-1">
-                        <AnimatePresence>
                           {!p ? (
-                            <motion.div
-                              key="skeleton"
-                              initial={{ opacity: 0.4, y: 4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, transition: { duration: duration.fast } }}
-                              transition={{ duration: duration.base, ease: ease.enter, delay: i * 0.06 }}
-                            >
-                              <CastingCard index={i} />
-                            </motion.div>
+                            <CastingCard index={i} />
                           ) : (
-                            <motion.button
+                            <button
                               key={p.id}
                               type="button"
                               aria-pressed={selected === p.id}
@@ -187,9 +199,6 @@ export default function RoleplaySetup() {
                                 setSelected(p.id);
                                 setPartnerError(undefined);
                               }}
-                              initial={{ opacity: 0, scale: 0.98 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ duration: duration.base, ease: ease.enter, delay: i * 0.06 }}
                               className={cn(
                                 'rounded-card border p-4 text-left outline-none',
                                 'transition-colors duration-fast ease-standard focus-visible:ring-2 focus-visible:ring-ring',
@@ -201,9 +210,8 @@ export default function RoleplaySetup() {
                               <Avatar name={p.name} emoji={p.emoji} />
                               <div className="mt-3 text-body-sm font-semibold text-fg">{p.name}</div>
                               <div className="mt-1 text-caption text-muted line-clamp-2">{p.traits}</div>
-                            </motion.button>
+                            </button>
                           )}
-                        </AnimatePresence>
                       </div>
                     );
                   })}
@@ -259,7 +267,7 @@ export default function RoleplaySetup() {
             {partnerError && <p className="text-caption text-danger">{partnerError}</p>}
           </div>
 
-          <Button type="submit" size="lg" block disabled={loadingPersonas}>
+          <Button type="submit" size="lg" block disabled={loadingPersonas || !scenario.trim() || !hasPartner}>
             Start conversation
             <ArrowRightIcon className="size-4" />
           </Button>

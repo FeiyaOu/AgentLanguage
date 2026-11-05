@@ -223,6 +223,18 @@ Runs on **http://localhost:5173**
 
 ### Backend: Aliyun Function Compute
 
+Practice generation uses `POST /api/generate-practice/stream`: one model request
+generates five questions, and the backend sends each validated question as a
+newline-delimited JSON event. The frontend renders the first question immediately
+and buffers later questions. If generation stops early, retry requests only the
+missing questions and preserves existing answers. The original non-streaming
+endpoint remains available.
+
+Deploy both frontend and backend when updating this protocol. The Web Function's
+HTTP response must remain streaming (`Transfer-Encoding: chunked`, supplied by
+Uvicorn for this response); any additional reverse proxy must disable buffering.
+See [Aliyun streaming support](https://www.alibabacloud.com/help/en/functioncompute/does-function-compute-support-sse-streaming-response).
+
 **Environment variables (FC console):**
 
 | Variable | Value |

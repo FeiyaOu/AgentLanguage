@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ArrowRightIcon } from '@heroicons/react/24/outline';
 import { Avatar, Button, Skeleton, SkeletonText, duration, ease } from '../ui';
 
@@ -61,12 +61,12 @@ export function Briefing({ personaName, personaEmoji, topic, difficulty, goal, s
         <li>Mistakes are fine. That's how you learn.</li>
       </motion.ul>
 
-      <motion.div variants={item} className="mt-8">
+      <div className="mt-8">
         <Button size="lg" block onClick={onStart}>
           Start conversation
           <ArrowRightIcon className="size-4" />
         </Button>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
@@ -82,7 +82,7 @@ const STAGE_MS = 1800;
 
 /**
  * Shown while the scene is generated (several seconds). Mirrors the Briefing layout so
- * the hand-off is seamless: the partner's avatar "arrives" with expanding rings, the
+ * the hand-off is seamless: the partner's avatar has a spinning loading ring, the
  * status line says what is happening, and skeletons hold the mission and scene cards.
  */
 export function PreparingState({ personaName, personaEmoji, topic }: PreparingStateProps) {
@@ -99,17 +99,10 @@ export function PreparingState({ personaName, personaEmoji, topic }: PreparingSt
     <div className="mx-auto max-w-lg px-4 py-10 sm:px-6 sm:py-16" aria-busy>
       <div className="flex flex-col items-center text-center">
         <div className="relative flex size-14 items-center justify-center">
-          {/* Two rings expand and fade in turn: a calm "arriving" pulse rather than a spinner. */}
-          {[0, 1].map((i) => (
-            <motion.span
-              key={i}
-              aria-hidden
-              className="absolute inset-0 rounded-pill border-2 border-accent/50"
-              initial={{ scale: 1, opacity: 0 }}
-              animate={{ scale: [1, 1.7], opacity: [0.7, 0] }}
-              transition={{ duration: 2, ease: ease.exit, repeat: Infinity, delay: i * 1 }}
-            />
-          ))}
+          <span
+            aria-hidden
+            className="absolute -inset-2 rounded-full border-2 border-accent-line/60 border-t-accent/70 animate-[spin_1.4s_linear_infinite]"
+          />
           <motion.div
             initial={{ scale: 0.9, opacity: 0.6 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -132,18 +125,7 @@ export function PreparingState({ personaName, personaEmoji, topic }: PreparingSt
       </div>
       {/* Sits where Briefing lists the rules, so the cards above line up exactly on hand-off. */}
       <div className="mt-6 h-5 text-body-sm text-accent-text" role="status" aria-live="polite">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={stage}
-            className="inline-block"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: duration.base, ease: ease.standard }}
-          >
-            {stages[stage]}
-          </motion.span>
-        </AnimatePresence>
+        <span>{stages[stage]}</span>
       </div>
     </div>
   );

@@ -18,7 +18,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen flex flex-col">
       <TopNav />
-      <main className="flex-1 pb-24 md:pb-0">
+      <main className="flex-1">
         {/*
           Enter-only and never from transparent: the old page is removed at once, so
           starting the new one at opacity 0 left a near-empty frame that read as a flash.
@@ -33,6 +33,9 @@ export function AppShell() {
           <Outlet />
         </motion.div>
       </main>
+      <footer className="border-t border-line px-4 pt-6 pb-28 text-center text-caption text-subtle md:pb-6">
+        © 2026 AgentLanguage. All rights reserved.
+      </footer>
       <BottomTabs />
     </div>
   );

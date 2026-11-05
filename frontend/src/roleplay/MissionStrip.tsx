@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDownIcon, FlagIcon } from '@heroicons/react/24/outline';
-import { cn, duration, ease } from '../ui';
+import { cn } from '../ui';
 
 /** One-line mission reminder; expands to show the scene. Keeps the chat area tall. */
 export function MissionStrip({ goal, scene }: { goal: string; scene: string }) {
@@ -32,10 +32,10 @@ export function MissionStrip({ goal, scene }: { goal: string; scene: string }) {
           {open && scene && (
             <motion.div
               id={panelId}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: duration.base, ease: ease.standard }}
+              initial={{ height: 0 }}
+              animate={{ height: 'auto' }}
+              exit={{ height: 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
               className="overflow-hidden"
             >
               <p className="pb-3 pl-[26px] text-body-sm text-muted">{scene}</p>

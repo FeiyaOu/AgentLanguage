@@ -27,6 +27,58 @@ export const generatePractice = async (
   return response.data;
 };
 
+export async function streamPractice(
+  topic: string, difficulty: string, focusAreas: string[],
+  existing: Exercise[], onQuestion: (exercise: Exercise) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/api/generate-practice/stream`, {
+    method: 'POST', signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      topic, difficulty, focus_areas: focusAreas, count: 5 - existing.length,
+      exclude_questions: existing.map((q) => q.type === 'sentence_reordering' ? q.correct_answer : q.question),
+    }),
+  });
+  if (!response.ok || !response.body) throw new Error('Could not start question generation');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let completed = false;
+  let received = existing.length;
+  const consume = (line: string) => {
+    if (!line.trim()) return;
+    const event = JSON.parse(line);
+    if (event.type === 'error') throw new Error(event.message);
+    if (event.type === 'question') {
+      if (received >= 5 || !event.exercise?.question || !event.exercise?.correct_answer) {
+        throw new Error('Invalid question stream');
+      }
+      onQuestion(event.exercise as Exercise);
+      received += 1;
+    } else if (event.type === 'done') {
+      completed = true;
+    }
+  };
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      let newline: number;
+      while ((newline = buffer.indexOf('\n')) !== -1) {
+        consume(buffer.slice(0, newline));
+        buffer = buffer.slice(newline + 1);
+      }
+      if (done) break;
+    }
+    consume(buffer);
+    if (!completed || received !== 5) throw new Error('Question stream ended early');
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
+
 export const scoreAnswers = async (
   exercises: Exercise[],
   answers: string[]
