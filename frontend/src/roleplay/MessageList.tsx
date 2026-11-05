@@ -1,7 +1,6 @@
-import { motion } from 'framer-motion';
 import { SparklesIcon } from '@heroicons/react/24/outline';
 import type { RoleplayMessage } from '../types';
-import { Avatar, cn, spring } from '../ui';
+import { Avatar, cn } from '../ui';
 
 type MessageListProps = {
   messages: RoleplayMessage[];
@@ -12,9 +11,7 @@ type MessageListProps = {
 
 function TypingIndicator({ personaName, personaEmoji }: { personaName: string; personaEmoji?: string }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className="flex items-end gap-2.5"
       role="status"
       aria-label={`${personaName} is typing`}
@@ -29,21 +26,20 @@ function TypingIndicator({ personaName, personaEmoji }: { personaName: string; p
           />
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-/** Chat transcript. Bubbles enter from their speaker's side. */
+/** New AI replies slide gently into place at full opacity. */
 export function MessageList({ messages, personaName, personaEmoji, typing }: MessageListProps) {
+  const reduceMotion = useReducedMotion();
   return (
     <div className="space-y-4" aria-live="polite" aria-relevant="additions">
       {messages.map((msg, i) => {
         if (msg.type === 'system' || msg.type === 'coach') {
           return (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
               className="flex justify-center"
             >
               <div
@@ -58,7 +54,7 @@ export function MessageList({ messages, personaName, personaEmoji, typing }: Mes
                   {msg.text}
                 </span>
               </div>
-            </motion.div>
+            </div>
           );
         }
 
@@ -66,9 +62,9 @@ export function MessageList({ messages, personaName, personaEmoji, typing }: Mes
         return (
           <motion.div
             key={i}
-            initial={{ opacity: 0, x: isUser ? 16 : -16, scale: 0.98 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={spring.gentle}
+            initial={isUser || reduceMotion ? false : { y: 6 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
             className={cn('flex items-end gap-2.5', isUser && 'justify-end')}
           >
             {!isUser && <Avatar name={personaName} emoji={personaEmoji} size="sm" />}
@@ -90,3 +86,4 @@ export function MessageList({ messages, personaName, personaEmoji, typing }: Mes
     </div>
   );
 }
+import { motion, useReducedMotion } from 'framer-motion';
